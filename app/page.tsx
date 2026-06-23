@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { List, PlusSquare, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ListView } from "@/components/list-view"
-import { AddPinView } from "@/components/add-pin-view"
-import { DetailView } from "@/components/detail-view"
+import { AllPins } from "@/components/allPins"
+import { AddPin } from "@/components/addPin"
+import { PinDetails} from "@/components/pinDetails"
 import { MapCanvas } from "@/components/map-canvas"
 
 type View = "list" | "add" | "detail"
@@ -31,9 +31,6 @@ export default function Page() {
       <div className="flex h-full w-full max-w-md flex-col border-r border-border bg-sidebar md:w-[420px] lg:w-[460px]">
         {/* Mockup view switcher */}
         <div className="flex items-center gap-1 border-b border-border px-3 py-2">
-          <span className="mr-1 hidden text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:inline">
-            Mockup
-          </span>
           {VIEWS.map((v) => {
             const Icon = v.icon
             return (
@@ -57,18 +54,18 @@ export default function Page() {
 {/* Active view container with persistent layout channels */}
           <div className="min-h-0 flex-1">
             <div className={cn("h-full", view !== "list" && "hidden")}>
-              <ListView onAddLocation={() => setView("add")} />
+              <AllPins onAddLocation={() => setView("add")} />
             </div>
             
             <div className={cn("h-full", view !== "add" && "hidden")}>
-              <AddPinView onLocationSelect={(coords) => {
+              <AddPin onLocationSelect={(coords) => {
                 console.log("Parent component received coordinates:", coords);
                 setMapCenter(coords);
               }} />
             </div>
             
             <div className={cn("h-full", view !== "detail" && "hidden")}>
-              <DetailView />
+              <PinDetails />
             </div>
           </div>
         </div>

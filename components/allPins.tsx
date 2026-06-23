@@ -23,7 +23,7 @@ const TABS: { id: ListTab; label: string; admin?: boolean }[] = [
   { id: "to-visit", label: "To-Visit List", admin: true },
 ]
 
-export function ListView({ onAddLocation }: { onAddLocation: () => void }) {
+export function AllPins({ onAddLocation }: { onAddLocation: () => void }) {
   const [tab, setTab] = useState<ListTab>("mine")
   const [activeFilters, setActiveFilters] = useState<string[]>(["Rating"])
   const [drinkFilters, setDrinkFilters] = useState<DrinkType[]>([])
@@ -47,7 +47,7 @@ export function ListView({ onAddLocation }: { onAddLocation: () => void }) {
             <MapPin className="size-5" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold leading-tight">Vancity Sips</h1>
+            <h1 className="text-sm font-semibold leading-tight">Vancity Sippy</h1>
             <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
               2/3 Pins Used
             </span>

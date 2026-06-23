@@ -26,7 +26,7 @@ interface AddPinViewProps {
   onLocationSelect: (coords: google.maps.LatLngLiteral) => void
 }
 
-export function AddPinView({ onLocationSelect }: AddPinViewProps) {
+export function AddPin({ onLocationSelect }: AddPinViewProps) {
   const apiIsLoaded = useApiIsLoaded() // 1. Check if the global Google script is loaded
 
   const [status, setStatus] = useState<"visited" | "to-visit">("visited")

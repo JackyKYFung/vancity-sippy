@@ -14,8 +14,8 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* 2. Wrap your children safely within the client boundary wrapper */}
+      {/* Add font-sans right here next to the variables */}
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <GoogleMapsProvider>
           {children}
         </GoogleMapsProvider>

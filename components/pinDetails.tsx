@@ -40,7 +40,7 @@ const REVIEWS = [
   },
 ]
 
-export function DetailView() {
+export function PinDetails() {
   const [openInfo, setOpenInfo] = useState<string | null>("hours")
   const [state, setState] = useState<DetailState>("unlocked")
 
@@ -59,21 +59,7 @@ export function DetailView() {
             </div>
           </div>
         </div>
-        {/* Mockup state toggle */}
-        <div className="flex overflow-hidden rounded-lg border border-border text-[10px] font-medium">
-          <button
-            onClick={() => setState("unlocked")}
-            className={cn("px-2 py-1", state === "unlocked" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
-          >
-            Unlocked
-          </button>
-          <button
-            onClick={() => setState("locked")}
-            className={cn("px-2 py-1", state === "locked" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
-          >
-            Locked
-          </button>
-        </div>
+
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">

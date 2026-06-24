@@ -1,12 +1,16 @@
 "use client"
 
 import { useEffect } from "react"
-import { Map, useMap } from "@vis.gl/react-google-maps"
-import { Navigation, Plus, Minus, Layers } from "lucide-react"
+import { Map, useMap, AdvancedMarker } from "@vis.gl/react-google-maps"
+import { Navigation, Plus, Minus, Layers, Coffee, MapPin } from "lucide-react"
+import type { Pin } from "@/lib/sips-data"
+
 
 interface MapCanvasProps {
   center: google.maps.LatLngLiteral
+  pins: Pin[]
 }
+
 
 // 1. This component sits INSIDE the Map provider, safely executing the camera pan
 function MapCameraControl({ center }: { center: google.maps.LatLngLiteral }) {
@@ -65,7 +69,10 @@ function MapControlsOverlay({ fallbackCenter }: { fallbackCenter: google.maps.La
   )
 }
 
-export function MapCanvas({ center }: MapCanvasProps) {
+export function MapCanvas({ center, pins = [] }: MapCanvasProps) {
+  
+  console.log("MapCanvas received pins data array:", pins)
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-[oklch(0.13_0.004_286)]">
       <Map
@@ -73,10 +80,40 @@ export function MapCanvas({ center }: MapCanvasProps) {
         defaultCenter={center}
         gestureHandling={"greedy"}
         disableDefaultUI={true}
+        mapId="DEMO_MAP_ID"
       >
         {/* Active controls living inside the context pipeline */}
         <MapCameraControl center={center} />
         <MapControlsOverlay fallbackCenter={center} />
+        {pins.map((pin) => (
+          <AdvancedMarker
+            key={`${pin.id}-${pin.color || 'default'}`}
+            position={{ lat: Number(pin.lat), lng: Number(pin.lng) }}
+            title={pin.name}
+          >
+            {/* Custom Pin layout without the inner Lucide circle overlap */}
+            <div className="relative flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-110 group">
+              
+              {/* 📍 The Main Teardrop Pin Body */}
+              <div 
+                className="flex size-9 items-center justify-center rounded-full border-2 border-white shadow-xl transition-colors duration-150"
+                style={{ backgroundColor: pin.color || '#6366f1' }}
+              >
+                {/* ☕ The Coffee Icon sits beautifully in the smooth center */}
+                <Coffee className="size-4 text-white fill-white/10" />
+              </div>
+
+              {/* 📐 The Triangle Point at the bottom of the pin */}
+              <div 
+                className="size-2.5 -mt-1.5 rotate-45 border-r-2 border-b-2 border-white shadow-sm"
+                style={{ backgroundColor: pin.color || '#6366f1' }}
+              />
+              
+              {/* Soft Ground Shadow */}
+              <div className="absolute -bottom-2 size-2.5 rounded-full bg-black/30 blur-[1px]" />
+            </div>
+          </AdvancedMarker>
+        ))}
       </Map>
     </div>
   )

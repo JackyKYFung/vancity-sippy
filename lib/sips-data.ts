@@ -11,6 +11,8 @@ export type Amenities = {
 export type Pin = {
   id: string
   name: string
+  lat: number
+  lng: number
   rating: number
   distanceKm: number
   category: DrinkType[]
@@ -21,12 +23,15 @@ export type Pin = {
   isMine: boolean
   amenities: Amenities
   review: string
+  color?: string
 }
 
 export const PINS: Pin[] = [
   {
     id: "1",
     name: "Revolver Coffee",
+    lat: 49.2834,
+    lng: -123.1089,
     rating: 4.5,
     distanceKm: 1.2,
     category: ["Coffee"],
@@ -41,6 +46,8 @@ export const PINS: Pin[] = [
   {
     id: "2",
     name: "Matchstick Riley Park",
+    lat: 49.2456,
+    lng: -123.1012,
     rating: 4.0,
     distanceKm: 2.8,
     category: ["Coffee", "Matcha"],
@@ -55,6 +62,8 @@ export const PINS: Pin[] = [
   {
     id: "3",
     name: "O5 Tea Bar",
+    lat: 49.2689,
+    lng: -123.1543,
     rating: 5.0,
     distanceKm: 3.4,
     category: ["Tea"],
@@ -69,6 +78,8 @@ export const PINS: Pin[] = [
   {
     id: "4",
     name: "Nemesis Coffee",
+    lat: 49.2831,
+    lng: -123.0994,
     rating: 3.5,
     distanceKm: 0.8,
     category: ["Coffee", "Blended"],
@@ -83,6 +94,8 @@ export const PINS: Pin[] = [
   {
     id: "5",
     name: "Sago & Co.",
+    lat: 49.1666,
+    lng: -123.1336,
     rating: 4.5,
     distanceKm: 5.1,
     category: ["Fruit", "Blended"],

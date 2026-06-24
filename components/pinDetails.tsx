@@ -3,6 +3,7 @@
 import { useState } from "react"
 import {
   ChevronDown,
+  ChevronLeft,
   Phone,
   Clock,
   MapPin,
@@ -13,9 +14,11 @@ import {
   VolumeX,
   Check,
   Image as ImageIcon,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarRating } from "@/components/star-rating"
+import type { Pin } from "@/lib/sips-data"
 
 type DetailState = "unlocked" | "locked"
 
@@ -40,64 +43,131 @@ const REVIEWS = [
   },
 ]
 
-export function PinDetails() {
-  const [openInfo, setOpenInfo] = useState<string | null>("hours")
-  const [state, setState] = useState<DetailState>("unlocked")
+export function PinDetails({
+  pin,
+  onBack,
+}: {
+  pin: Pin
+  onBack: () => void
+}) {
+  const [contactOpen, setContactOpen] = useState(false)
+  const [state] = useState<DetailState>(pin.status === "visited" ? "unlocked" : "locked")
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
+
+  const handleRemovePin = () => {
+    // Placeholder: will delete from Supabase once wired up
+    console.log("Removing pin:", pin.id)
+    setShowRemoveConfirm(false)
+    onBack()
+  }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="flex items-center gap-3">
+    <div className="relative flex h-full flex-col">
+      {showRemoveConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 px-5 backdrop-blur-sm">
+          <div className="w-full max-w-xs rounded-2xl border border-border bg-card p-5 shadow-lg">
+            <p className="text-center text-sm font-medium">
+              Are you sure about removing this pin?
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setShowRemoveConfirm(false)}
+                className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold transition-colors hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemovePin}
+                className="flex-1 rounded-lg bg-destructive px-3 py-2 text-xs font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
+              >
+                Remove pin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="border-b border-border px-5 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+            Back to pins
+          </button>
+          <button
+            onClick={() => setShowRemoveConfirm(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-2.5 py-1.5 text-[11px] font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
+          >
+            <Trash2 className="size-3.5" />
+            Remove Pin
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <MapPin className="size-5" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold leading-tight">Revolver Coffee</h1>
+            <h1 className="text-sm font-semibold leading-tight">{pin.name}</h1>
             <div className="mt-0.5 flex items-center gap-2">
-              <StarRating value={4.5} size={13} />
-              <span className="text-[11px] text-muted-foreground">4.5 · Gastown · 1.2 km</span>
+              <StarRating value={pin.rating} size={13} />
+              <span className="text-[11px] text-muted-foreground">
+                {pin.rating.toFixed(1)} · {pin.neighborhood} · {pin.distanceKm} km
+              </span>
             </div>
           </div>
         </div>
-
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-        {/* Google Maps details accordion */}
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <Accordion
-            id="contact"
-            icon={Phone}
-            title="Contact info"
-            open={openInfo === "contact"}
-            onToggle={(id) => setOpenInfo(openInfo === id ? null : id)}
+          <button
+            onClick={() => setContactOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-accent/50"
           >
-            <p>(604) 558-4444</p>
-            <p className="text-primary">revolvercoffee.ca</p>
-          </Accordion>
-          <Accordion
-            id="hours"
-            icon={Clock}
-            title="Hours"
-            open={openInfo === "hours"}
-            onToggle={(id) => setOpenInfo(openInfo === id ? null : id)}
-          >
-            <div className="space-y-1">
-              <Row k="Mon – Fri" v="7:00 AM – 6:00 PM" />
-              <Row k="Saturday" v="9:00 AM – 6:00 PM" />
-              <Row k="Sunday" v="9:00 AM – 5:00 PM" />
+            <span className="flex items-center gap-2.5">
+              <Phone className="size-4 text-muted-foreground" />
+              Contact Information
+            </span>
+            <ChevronDown
+              className={cn(
+                "size-4 text-muted-foreground transition-transform",
+                contactOpen && "rotate-180",
+              )}
+            />
+          </button>
+          {contactOpen && (
+            <div className="space-y-4 border-t border-border px-4 py-3 pl-11 text-xs text-muted-foreground">
+              <div>
+                <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
+                  <Phone className="size-3.5" />
+                  Phone
+                </p>
+                <p>(604) 558-4444</p>
+              </div>
+              <div>
+                <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
+                  <Clock className="size-3.5" />
+                  Hours
+                </p>
+                <div className="space-y-1">
+                  <Row k="Mon – Fri" v="7:00 AM – 6:00 PM" />
+                  <Row k="Saturday" v="9:00 AM – 6:00 PM" />
+                  <Row k="Sunday" v="9:00 AM – 5:00 PM" />
+                </div>
+              </div>
+              <div>
+                <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
+                  <MapPin className="size-3.5" />
+                  Address
+                </p>
+                <p>325 Cambie St, Vancouver, BC V6B 2N4</p>
+                <p className="mt-1 text-primary">revolvercoffee.ca</p>
+              </div>
             </div>
-          </Accordion>
-          <Accordion
-            id="address"
-            icon={MapPin}
-            title="Address"
-            open={openInfo === "address"}
-            onToggle={(id) => setOpenInfo(openInfo === id ? null : id)}
-            last
-          >
-            <p>325 Cambie St, Vancouver, BC V6B 2N4</p>
-          </Accordion>
+          )}
         </section>
 
         <a
@@ -108,7 +178,6 @@ export function PinDetails() {
           Open in Google Maps
         </a>
 
-        {/* Conditional bottom section */}
         {state === "unlocked" ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
@@ -127,46 +196,12 @@ export function PinDetails() {
             <div className="space-y-1">
               <p className="text-sm font-semibold">Location not yet unlocked by Jacky</p>
               <p className="max-w-xs text-pretty text-xs text-muted-foreground">
-                This is a gray “To-Visit” pin. Reviews unlock once the spot has been visited and logged.
+                This is a gray "To-Visit" pin. Reviews unlock once the spot has been visited and logged.
               </p>
             </div>
           </section>
         )}
       </div>
-    </div>
-  )
-}
-
-function Accordion({
-  id,
-  icon: Icon,
-  title,
-  open,
-  onToggle,
-  children,
-  last,
-}: {
-  id: string
-  icon: React.ElementType
-  title: string
-  open: boolean
-  onToggle: (id: string) => void
-  children: React.ReactNode
-  last?: boolean
-}) {
-  return (
-    <div className={cn(!last && "border-b border-border")}>
-      <button
-        onClick={() => onToggle(id)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-accent/50"
-      >
-        <span className="flex items-center gap-2.5">
-          <Icon className="size-4 text-muted-foreground" />
-          {title}
-        </span>
-        <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
-      </button>
-      {open && <div className="px-4 pb-3 pl-11 text-xs text-muted-foreground">{children}</div>}
     </div>
   )
 }

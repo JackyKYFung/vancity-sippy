@@ -8,6 +8,20 @@ export type Amenities = {
   quiet: boolean
 }
 
+export type PinDrink = {
+  name: string
+  rating: number
+  user: string
+  status: string
+  amenities: string[]
+  review: string
+  hasPhoto?: boolean
+}
+
+export type PinDetailsInfo = {
+  drinks: PinDrink[]
+}
+
 export type Pin = {
   id: string
   name: string
@@ -24,6 +38,7 @@ export type Pin = {
   amenities: Amenities
   review: string
   color?: string
+  details: PinDetailsInfo
 }
 
 export const PINS: Pin[] = [
@@ -42,6 +57,28 @@ export const PINS: Pin[] = [
     isMine: true,
     amenities: { outlets: true, ampleSeating: false, quiet: true },
     review: "Impeccable pour-over program. Tight on seats during the lunch rush but the espresso is worth the wait.",
+    details: {
+      drinks: [
+        {
+          name: "Cortado",
+          rating: 4.5,
+          user: "jacky",
+          status: "Visited",
+          amenities: ["Outlets", "Quiet"],
+          review: "Impeccable pour-over program and the cortado is dialed in. Tight on seats at peak but worth it.",
+          hasPhoto: true,
+        },
+        {
+          name: "Flat white",
+          rating: 3.5,
+          user: "mara",
+          status: "Visited",
+          amenities: ["Limited seating"],
+          review: "Lovely beans and friendly baristas. Lost half a star because it gets loud and cramped on weekends.",
+          hasPhoto: false,
+        },
+      ],
+    },
   },
   {
     id: "2",
@@ -58,6 +95,18 @@ export const PINS: Pin[] = [
     isMine: true,
     amenities: { outlets: true, ampleSeating: true, quiet: false },
     review: "Bright, airy room with tons of tables and outlets. Great spot to camp with a laptop for a few hours.",
+    details: {
+      drinks: [
+        {
+          name: "Ceremonial matcha latte",
+          rating: 4.0,
+          user: "jacky",
+          status: "Visited",
+          amenities: ["Outlets", "Ample seating"],
+          review: "Bright, airy room with tons of tables and outlets. Great spot to camp with a laptop for a few hours.",
+        },
+      ],
+    },
   },
   {
     id: "3",
@@ -74,6 +123,7 @@ export const PINS: Pin[] = [
     isMine: false,
     amenities: { outlets: false, ampleSeating: true, quiet: true },
     review: "Curated loose-leaf selection from small farms. A meditative, quiet experience.",
+    details: { drinks: [] },
   },
   {
     id: "4",
@@ -90,6 +140,18 @@ export const PINS: Pin[] = [
     isMine: false,
     amenities: { outlets: false, ampleSeating: false, quiet: false },
     review: "Gorgeous space and lively energy, but loud and hard to find a seat on weekends.",
+    details: {
+      drinks: [
+        {
+          name: "Iced shaken espresso",
+          rating: 3.5,
+          user: "devon",
+          status: "Visited",
+          amenities: ["Limited seating"],
+          review: "Gorgeous space and lively energy, but loud and hard to find a seat on weekends.",
+        },
+      ],
+    },
   },
   {
     id: "5",
@@ -106,6 +168,7 @@ export const PINS: Pin[] = [
     isMine: true,
     amenities: { outlets: true, ampleSeating: true, quiet: false },
     review: "On the list — heard the mango pomelo sago is the best in the Lower Mainland.",
+    details: { drinks: [] },
   },
 ]
 

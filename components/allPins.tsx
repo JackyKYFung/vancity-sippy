@@ -10,11 +10,13 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarRating } from "@/components/star-rating"
-import { PINS, drinkTypeColor, type Pin, type DrinkType } from "@/lib/sips-data"
+import { drinkTypeColor, type Pin, type DrinkType } from "@/lib/sips-data"
 
 export function AllPins({
+  pins,
   onPinSelect,
 }: {
+  pins: Pin[]
   onPinSelect: (pin: Pin) => void
 }) {
   const [activeFilters, setActiveFilters] = useState<string[]>(["Rating"])
@@ -25,8 +27,8 @@ export function AllPins({
   const toggleDrink = (d: DrinkType) =>
     setDrinkFilters((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
 
-  let pins: Pin[] = PINS
-  if (drinkFilters.length) pins = pins.filter((p) => p.category.some((c) => drinkFilters.includes(c)))
+  let filteredPins: Pin[] = pins
+  if (drinkFilters.length) filteredPins = filteredPins.filter((p) => p.category.some((c) => drinkFilters.includes(c)))
 
   return (
     <div className="flex h-full flex-col">
@@ -66,7 +68,7 @@ export function AllPins({
       {/* Bento grid of cards */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {pins.map((pin, i) => (
+          {filteredPins.map((pin, i) => (
             <PinCard
               key={pin.id}
               pin={pin}
@@ -75,7 +77,7 @@ export function AllPins({
             />
           ))}
         </div>
-        {pins.length === 0 && (
+        {filteredPins.length === 0 && (
           <div className="flex h-40 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <MapPin className="size-6 opacity-50" />
             <p className="text-sm">No pins match these filters.</p>

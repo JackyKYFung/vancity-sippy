@@ -14,6 +14,7 @@ import {
   X,
   Plus,
   MapPin,
+  Coffee,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarRating } from "@/components/star-rating"
@@ -95,7 +96,7 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
         </div>
         <div>
           <h1 className="text-sm font-semibold leading-tight">Add a new pin</h1>
-          <p className="text-[11px] text-muted-foreground">Drop a spot on your Vancity Sips map</p>
+          <p className="text-[11px] text-muted-foreground">Share your favourite sips location</p>
         </div>
       </div>
 
@@ -165,51 +166,41 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
           </div>
         </Field>
 
-        {/* Review */}
-        <Field label="Review">
-          <textarea
-            rows={3}
-            placeholder="What stood out? Service, vibe, the drink itself…"
-            className="w-full resize-none rounded-xl border border-input bg-secondary px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
-          />
-        </Field>
+        {/* Custom drink input */}
+        <Field label="What drink did you have?">
+          <div className="flex flex-col gap-2">
+            {/* Labels Row */}
+            <div className="flex gap-3 text-xs font-medium text-muted-foreground">
+              <span className="flex-1">Drink Name</span>
+              <span className="w-24">Price</span>
+            </div>
 
-        {/* Amenities & Vibe grid */}
-        <Field label="Amenities & vibe">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <AmenityGroup
-              title="Power outlets"
-              options={[
-                { key: true, label: "Outlets", icon: PlugZap },
-                { key: false, label: "None", icon: Plug },
-              ]}
-              value={outlets}
-              onChange={setOutlets}
-            />
-            <AmenityGroup
-              title="Seating"
-              options={[
-                { key: "ample", label: "Ample", icon: Armchair },
-                { key: "limited", label: "Limited", icon: Armchair },
-              ]}
-              value={seating}
-              onChange={setSeating}
-            />
-            <AmenityGroup
-              title="Noise level"
-              options={[
-                { key: "quiet", label: "Quiet", icon: VolumeX },
-                { key: "lively", label: "Lively", icon: Volume2 },
-              ]}
-              value={noise}
-              onChange={setNoise}
-            />
-          </div>
-        </Field>
-
-        {/* Drink type checkboxes */}
-        <Field label="Drink type">
-          <div className="flex flex-wrap gap-2">
+            {/* Inputs Row */}
+            <div className="flex w-full gap-2">
+              <input
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addCustomDrink()
+                  }
+                }}
+                placeholder="e.g., Mango Pomelo Sago"
+                className="min-w-0 flex-1 rounded-xl border border-input bg-secondary px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+              />
+              
+              {/* Fixed: Dedicated Price Input with a solid, rigid width constraint */}
+              <input
+                type="text"
+                placeholder="$6.50"
+                className="w-24 min-w-0 rounded-xl border border-input bg-secondary px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+              />
+            </div>
+            <div className="flex gap-3 text-xs font-medium text-muted-foreground">
+              <span className="flex-1">Drink Type</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
             {DRINK_TYPES.map((d) => {
               const active = drinkTypes.includes(d)
               return (
@@ -217,51 +208,29 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
                   key={d}
                   onClick={() => toggleDrinkType(d)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                    "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
                     active
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "flex size-4 items-center justify-center rounded border",
-                      active ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
-                    )}
-                  >
-                    {active && <Check className="size-3" />}
-                  </span>
                   {d}
                 </button>
               )
             })}
           </div>
-        </Field>
 
-        {/* Custom drink input */}
-        <Field label="What specific drink did you have?">
-          <div className="flex gap-2">
-            <input
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  addCustomDrink()
-                }
-              }}
-              placeholder="e.g., Mango Pomelo Sago"
-              className="flex-1 rounded-xl border border-input bg-secondary px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
-            />
-            <button
-              onClick={addCustomDrink}
-              className="inline-flex items-center gap-1 rounded-xl border border-border bg-secondary px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-            >
-              <Plus className="size-4" />
-              Add
-            </button>
-          </div>
-          {customDrinks.length > 0 && (
+          <div className="pt-4">
+          <button 
+            onClick={addCustomDrink}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+            <Coffee className="size-4" />
+            Add Drink
+          </button>
+        </div>
+
+
+        {customDrinks.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {customDrinks.map((d) => (
                 <span
@@ -280,10 +249,13 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
               ))}
             </div>
           )}
+          </div>
         </Field>
 
+
+
         {/* File upload */}
-        <Field label="Review photo (optional)">
+        <Field label="Upload a photo (optional)">
           <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/50 px-4 py-6 text-center transition-colors hover:border-primary/40">
             <div className="flex size-10 items-center justify-center rounded-full bg-muted">
               <Upload className="size-4 text-muted-foreground" />
@@ -299,7 +271,7 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
       <div className="border-t border-border px-5 py-4">
         <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
           <MapPin className="size-4" />
-          Add Location
+          Add Pin
         </button>
       </div>
     </div>

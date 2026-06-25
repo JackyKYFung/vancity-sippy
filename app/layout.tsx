@@ -6,9 +6,10 @@ import { GoogleMapsProvider } from '@/components/google-maps-provider'
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
+
 export const metadata = {
-  title: 'Vancity Sips',
-  description: 'Track your local Vancouver drink spots',
+  title: 'Vancity Sippy',
+  description: 'Share your local drink spots',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

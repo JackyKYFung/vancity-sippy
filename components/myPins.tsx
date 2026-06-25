@@ -1,18 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, MapPin, Palette, Plus } from "lucide-react"
+import { ChevronDown, MapPin, Palette, Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PINS, type Pin } from "@/lib/sips-data"
 
 const PRESET_COLORS = [
-  "#8B5A2B", // Rich Espresso Brown (Perfect for Coffee)
-  "#059669", // Vivid Matcha Green (Stands out sharply)
+  "#BFDD2C", // Lemon Lime
+  "#FFB400", // Amber Flame
   "#D97706", // Amber / Milk Tea Gold
-  "#BE185D", // Deep Raspberry / Fruit Tea Berry
-  "#2563EB", // Electric Blue (Great contrast accent)
+  "#DDA7B2", // Soft Blossom
+  "#00A6ED", // Fresh Sky
   "#7C3AED", // Royal Purple
-  "#06B6D4", // Bright Cyan
+  "#09BC8A", // Mint Leaf
   "#F43F5E", // Crisp Rose Tint
 ]
 
@@ -131,10 +131,12 @@ export function MyPins({
                   {pin.neighborhood} · {pin.distanceKm} km away
                 </p>
               </div>
-              <span
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: pinColor }}
-              />
+              <button>
+                <X 
+                  className="size-5 stroke-3 shrink-0 rounded-full"
+                  style={{ color: pinColor }}
+                />
+              </button>
             </article>
           ))}
         </div>

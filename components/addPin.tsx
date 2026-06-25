@@ -148,7 +148,7 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <StarRating value={rating} size={26} />
-              <span className="font-mono text-sm font-semibold text-primary">{rating.toFixed(1)} / 5.0</span>
+              <span className="font-mono text-sm font-semibold text-primary">{rating.toFixed(1)} / 5</span>
             </div>
             <input
               type="range"
@@ -161,11 +161,7 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
               style={{ ["--pct" as string]: `${(rating / 5) * 100}%` }}
               aria-label="Rating"
             />
-            <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
-              <span>0.0</span>
-              <span>2.5</span>
-              <span>5.0</span>
-            </div>
+
           </div>
         </Field>
 

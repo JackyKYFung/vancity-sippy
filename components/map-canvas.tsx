@@ -80,7 +80,8 @@ export function MapCanvas({ center, pins = [] }: MapCanvasProps) {
         defaultCenter={center}
         gestureHandling={"greedy"}
         disableDefaultUI={true}
-        mapId="DEMO_MAP_ID"
+        mapId="cd6cc0d22db45621f4d852e8"
+        colorScheme="DARK"
       >
         {/* Active controls living inside the context pipeline */}
         <MapCameraControl center={center} />

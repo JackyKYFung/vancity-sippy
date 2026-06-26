@@ -10,7 +10,17 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarRating } from "@/components/star-rating"
-import { drinkTypeColor, type Pin, type DrinkType } from "@/lib/sips-data"
+import { Pin, DrinkType } from "@/types/map"
+
+// Add this mapping object near the top of allPins.tsx 
+// (Adjust colors to match your theme)
+const drinkTypeColor: Record<string, string> = {
+  Coffee: "bg-amber-50 text-amber-700 border-amber-200",
+  Matcha: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Tea: "bg-green-50 text-green-700 border-green-200",
+  Espresso: "bg-orange-50 text-orange-700 border-orange-200",
+  "Cold Brew": "bg-stone-50 text-stone-700 border-stone-200",
+};
 
 export function AllPins({
   pins,
@@ -49,7 +59,7 @@ export function AllPins({
         <div>
           <p className="mb-2 text-xs font-semibold text-foreground">Filter Drinks By:</p>
           <div className="flex flex-wrap items-center gap-2">
-            {(["Coffee", "Tea", "Matcha", "Fruit"] as DrinkType[]).map((d) => (
+            {(["Coffee", "Matcha", "Tea", "Juice", "Milk", "Fizzy", "Chocolate", "Blended"] as DrinkType[]).map((d) => (
               <button
                 key={d}
                 onClick={() => toggleDrink(d)}
@@ -159,7 +169,7 @@ function PinCard({
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold">{pin.name}</h3>
           <p className="mt-0.5 text-[11px] text-muted-foreground mb-1">
-            {pin.neighborhood} · {pin.distanceKm} km away
+            {pin.neighborhood} · {typeof pin.distanceKm === 'number' ? `${pin.distanceKm.toFixed(1)} km away` : 'Calculating distance...'}
           </p>
           <StarRating value={pin.rating} size={14} />
         </div>

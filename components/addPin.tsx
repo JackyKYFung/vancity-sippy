@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, SubmitEvent } from "react"
 import {
   Search,
   Check,
@@ -18,10 +18,20 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarRating } from "@/components/star-rating"
-import { DRINK_TYPES, type DrinkType } from "@/lib/sips-data"
+import { DRINK_TYPES, VisitStatus, type DrinkType } from "@/types/map"
 // Added hook imports right here
 import usePlacesAutocomplete, { getGeocode, getLatLng } from "use-places-autocomplete"
 import { useApiIsLoaded } from "@vis.gl/react-google-maps" // Add this line
+
+import { createClient } from "@supabase/supabase-js"
+// 🟢 Import your newly generated types
+import { Database } from "@/lib/database.types" 
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// 🟢 Pass <Database> here so the client knows your tables!
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
 interface AddPinViewProps {
   onLocationSelect: (coords: google.maps.LatLngLiteral) => void
@@ -30,23 +40,47 @@ interface AddPinViewProps {
 export function AddPin({ onLocationSelect }: AddPinViewProps) {
   const apiIsLoaded = useApiIsLoaded() // 1. Check if the global Google script is loaded
 
+  const [name, setName] = useState("")
+  const [drink, setDrink] = useState("")
+  const [rating, setRating] = useState(2.5)
+  const [categories, setCategories] = useState<string[]>([])
+  const [neighborhood, setNeighborhood] = useState("Downtown")
+  const [customDrinks, setCustomDrinks] = useState<string[]>(["Cortado"])
+
   const [status, setStatus] = useState<"visited" | "to-visit">("visited")
-  const [rating, setRating] = useState(3.5)
   const [outlets, setOutlets] = useState<boolean | null>(true)
   const [seating, setSeating] = useState<"ample" | "limited" | null>("ample")
   const [noise, setNoise] = useState<"quiet" | "lively" | null>("quiet")
   const [drinkTypes, setDrinkTypes] = useState<DrinkType[]>(["Coffee"])
   const [customInput, setCustomInput] = useState("")
-  const [customDrinks, setCustomDrinks] = useState<string[]>(["Cortado"])
 
-  const toggleDrinkType = (d: DrinkType) =>
-    setDrinkTypes((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
-
+  const resetFormFields = () => {
+    setName("")
+    setRating(5)  
+    setNeighborhood("Vancouver")
+    setDrinkTypes([])
+    setCustomDrinks([]) 
+    setStatus("to-visit") 
+    
+    setSelectedCoords(null)
+    setSearchValue("") 
+  }
+  
   const addCustomDrink = () => {
     const v = customInput.trim()
     if (v && !customDrinks.includes(v)) setCustomDrinks((p) => [...p, v])
     setCustomInput("")
   }
+
+  interface AddPinProps {
+    lat: number
+    lng: number
+    // or maybe it's passed as an object: selectedCoords: { lat: number; lng: number }
+  }
+
+  const toggleDrinkType = (d: DrinkType) =>
+    setDrinkTypes((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+  
 
   // Google Places Autocomplete Hook
   const {
@@ -86,6 +120,68 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
     } catch (error) {
       console.error("Error retrieving coordinates from Google:", error)
     }
+  }
+
+  const handleFormSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault()
+
+    // Safety check: Make sure they actually picked a spot on the map first!
+    if (!selectedCoords) {
+      alert("Please search for and select a location from the search bar first!")
+      return
+    }
+
+    // 1. Grab the active authenticated session context parameters
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      alert("Please log in to save your custom coffee spots!")
+      return
+    }
+
+    // 2. Fetch the metadata username string that your trigger syncs up
+    const creatorUsername = session.user.user_metadata?.username || "anonymous"
+
+    // 3. Insert the new row into your public "pins" table
+    const { data, error } = await supabase
+    .from("pins")
+    .insert([
+      {
+        // 1. Core structural columns that exist natively on your table:
+        name: name || searchValue.split(",")[0],        
+        lat: selectedCoords.lat, 
+        lng: selectedCoords.lng,
+        user_id: session.user.id,
+        status: status, // Matches your 'status' column ("visited" | "to-visit")
+
+        // 2. Pack everything else into your flexible jsonb 'details' column!
+        details: {
+          drinks: customDrinks.length > 0 ? customDrinks : [
+            {
+              name: "Regular Coffee",
+              rating: 5,
+              user: creatorUsername, // Attaches the actual logged-in user name
+              status: "visited",
+              amenities: [],
+              review: "Default log entry."
+            }
+          ],
+          drinkTypes: drinkTypes,
+          rating: Number(rating),
+          neighborhood: neighborhood || "Vancouver",
+          created_by: creatorUsername,
+        }
+      }
+    ])
+    .select()
+
+    if (error) {
+      alert(`Could not save pin: ${error.message}`)
+      return
+    }
+
+    alert("Coffee spot saved successfully! ☕")
+
+    resetFormFields()
   }
 
   return (
@@ -267,9 +363,12 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
         </Field>
       </div>
 
-      {/* Submit */}
-      <div className="border-t border-border px-5 py-4">
-        <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+    {/* Submit */}
+    <div className="border-t border-border px-5 py-4">
+        <button 
+          onClick={handleFormSubmit} // 🟢 Connect the submission handler here!
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
           <MapPin className="size-4" />
           Add Pin
         </button>

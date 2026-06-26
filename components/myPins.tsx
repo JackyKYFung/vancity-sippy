@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ChevronDown, MapPin, Palette, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import type { Pin } from "@/lib/sips-data"
+import { Pin } from '@/types/map'
 
 const PRESET_COLORS = [
   "#BFDD2C",

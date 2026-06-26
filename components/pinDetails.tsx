@@ -10,7 +10,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react"
 import { StarRating } from "@/components/star-rating"
-import type { Pin, PinDrink } from "@/lib/sips-data"
+import { Pin, PinDrink } from '@/types/map'
 
 export function PinDetails({
   pin,
@@ -19,6 +19,9 @@ export function PinDetails({
   pin: Pin
   onClose: () => void
 }) {
+  // 🟢 Extract drinks array safely, handling both new structures and missing states
+  const rawDrinks = pin.details?.drinks || []
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-5 py-4">
@@ -37,9 +40,11 @@ export function PinDetails({
           <div>
             <h1 className="text-sm font-semibold leading-tight">{pin.name}</h1>
             <div className="mt-0.5 flex items-center gap-2">
-              <StarRating value={pin.rating} size={13} />
+              <StarRating value={pin.rating ?? pin.details?.rating ?? 5} size={13} />
               <span className="text-[11px] text-muted-foreground">
-                {pin.rating.toFixed(1)} · {pin.neighborhood} · {pin.distanceKm} km
+                {((pin.rating ?? pin.details?.rating ?? 5)).toFixed(1)} · {pin.neighborhood || pin.details?.neighborhood || "Vancouver"}
+                {/* 🟢 Only render distance formatting if gps tracking data exists */}
+                {typeof pin.distanceKm === 'number' && pin.distanceKm > 0 && ` · ${pin.distanceKm.toFixed(1)} km`}
               </span>
             </div>
           </div>
@@ -50,14 +55,31 @@ export function PinDetails({
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Drinks</h2>
           <span className="text-[11px] text-muted-foreground">
-            {pin.details.drinks.length} logged
+            {rawDrinks.length} logged
           </span>
         </div>
 
-        {pin.details.drinks.length > 0 ? (
-          pin.details.drinks.map((drink) => (
-            <DrinkCard key={`${drink.user}-${drink.name}`} drink={drink} />
-          ))
+        {rawDrinks.length > 0 ? (
+          rawDrinks.map((drink: any, index: number) => {
+            // 🟢 Normalization: If a database row contains a flat string item (e.g. ["Coffee"]),
+            // transform it on the fly into a proper PinDrink layout object so the card doesn't break.
+            const standardizedDrink: PinDrink = typeof drink === 'string' 
+              ? {
+                  name: drink,
+                  rating: pin.rating || 5,
+                  user: pin.details?.created_by || "anonymous",
+                  status: "visited",
+                  review: "Default entry log."
+                }
+              : drink
+
+            return (
+              <DrinkCard 
+                key={`${standardizedDrink.user}-${standardizedDrink.name}-${index}`} 
+                drink={standardizedDrink} 
+              />
+            )
+          })
         ) : (
           <p className="rounded-2xl border border-dashed border-border bg-card/60 px-6 py-10 text-center text-xs text-muted-foreground">
             No drinks logged yet for this location.
@@ -81,43 +103,33 @@ function DrinkCard({ drink }: { drink: PinDrink }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
-            {drink.user.slice(0, 2).toUpperCase()}
+            {(drink.user || "??").slice(0, 2).toUpperCase()}
           </div>
           <div>
-            <p className="text-xs font-semibold">Explored by @{drink.user}</p>
+            <p className="text-xs font-semibold">Explored by @{drink.user || "anonymous"}</p>
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
               <Check className="size-2.5" />
-              {drink.status}
+              {drink.status || "visited"}
             </span>
           </div>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <StarRating value={drink.rating} size={13} />
+          <StarRating value={drink.rating ?? 5} size={13} />
           <span className="text-[10px] font-medium text-muted-foreground">
-            {drink.rating.toFixed(1)}
+            {(drink.rating ?? 5).toFixed(1)}
           </span>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
         <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-          {drink.name}
+          {drink.name || "Regular Coffee"}
         </span>
-        {drink.amenities.map((a) => {
-          const Icon = amenityIcon[a] ?? Check
-          return (
-            <span
-              key={a}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-            >
-              <Icon className="size-3" />
-              {a}
-            </span>
-          )
-        })}
       </div>
 
-      <p className="text-xs leading-relaxed text-muted-foreground">{drink.review}</p>
+      {drink.review && (
+        <p className="text-xs leading-relaxed text-muted-foreground">{drink.review}</p>
+      )}
 
       {drink.hasPhoto && (
         <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border bg-muted/50">

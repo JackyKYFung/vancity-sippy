@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Map, useMap, AdvancedMarker, InfoWindow } from "@vis.gl/react-google-maps"
 import { Navigation, Plus, Minus, Layers, Coffee, MapPin } from "lucide-react"
-import type { Pin } from "@/lib/sips-data"
+import type { Pin } from "@/types/map"
 
 
 interface MapCanvasProps {

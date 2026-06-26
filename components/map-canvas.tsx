@@ -140,11 +140,15 @@ export function MapCanvas({ center, pins = [], hoveredPin, setHoveredPin }: MapC
                   {hoveredPin.name}
                 </h4>
                 <p className="text-[10px] font-sans text-zinc-400 mt-0.5 whitespace-nowrap">
-                  Created by <span className="font-semibold text-amber-500">@{hoveredPin.createdBy || "anonymous"}</span>
+                  Created by 
+                  <span 
+                    className="font-semibold"
+                    style={{ color: hoveredPin.color || 'text-amber-500' }}
+                    > {hoveredPin.createdBy || "anonymous"}</span>
                 </p>
 
                 {/* 📐 Custom Dark Triangle Pointer Arrow stem at the bottom */}
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 size-2 rotate-45 bg-zinc-950 border-r border-b border-zinc-800" />
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 size-2 rotate-45 bg-black border-r border-b border-zinc-800" />
               </div>
             </div>
           </AdvancedMarker>

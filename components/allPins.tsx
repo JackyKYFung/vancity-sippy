@@ -15,9 +15,11 @@ import { drinkTypeColor, type Pin, type DrinkType } from "@/lib/sips-data"
 export function AllPins({
   pins,
   onPinSelect,
+  onPinHover, // 🟢 1. Destructure the new function handler
 }: {
   pins: Pin[]
   onPinSelect: (pin: Pin) => void
+  onPinHover: (pin: Pin | null) => void // 🟢 2. Declare its TypeScript function type here
 }) {
   const [activeFilters, setActiveFilters] = useState<string[]>(["Rating"])
   const [drinkFilters, setDrinkFilters] = useState<DrinkType[]>([])
@@ -74,6 +76,9 @@ export function AllPins({
               pin={pin}
               featured={i === 0}
               onClick={() => onPinSelect(pin)}
+              // 🟢 3. Pass the callbacks down into your custom PinCard component instances
+              onMouseEnter={() => onPinHover(pin)}
+              onMouseLeave={() => onPinHover(null)}
             />
           ))}
         </div>
@@ -122,16 +127,23 @@ function PinCard({
   pin,
   featured,
   onClick,
+  onMouseEnter, // 🟢 4. Receive the mouse listeners inside your card properties
+  onMouseLeave,
 }: {
   pin: Pin
   featured?: boolean
   onClick: () => void
+  onMouseEnter: () => void // 🟢 5. Add types for the card's native listeners
+  onMouseLeave: () => void
 }) {
   return (
     <article
       role="button"
       tabIndex={0}
       onClick={onClick}
+      // 🟢 6. Attach the native event listeners straight onto the physical DOM element
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()
@@ -151,7 +163,6 @@ function PinCard({
           </p>
           <StarRating value={pin.rating} size={14} />
         </div>
-
       </div>
 
       <div className="flex flex-wrap gap-1.5">

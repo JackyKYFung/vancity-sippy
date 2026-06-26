@@ -39,6 +39,7 @@ export type Pin = {
   review: string
   color?: string
   details: PinDetailsInfo
+  createdBy: string
 }
 
 export const PINS: Pin[] = [
@@ -79,6 +80,7 @@ export const PINS: Pin[] = [
         },
       ],
     },
+    createdBy: "jfunki"
   },
   {
     id: "2",
@@ -107,6 +109,7 @@ export const PINS: Pin[] = [
         },
       ],
     },
+    createdBy: "jfunki"
   },
   {
     id: "3",
@@ -124,6 +127,7 @@ export const PINS: Pin[] = [
     amenities: { outlets: false, ampleSeating: true, quiet: true },
     review: "Curated loose-leaf selection from small farms. A meditative, quiet experience.",
     details: { drinks: [] },
+    createdBy: "jfunki"
   },
   {
     id: "4",
@@ -152,6 +156,7 @@ export const PINS: Pin[] = [
         },
       ],
     },
+    createdBy: "jfunki"
   },
   {
     id: "5",
@@ -169,6 +174,7 @@ export const PINS: Pin[] = [
     amenities: { outlets: true, ampleSeating: true, quiet: false },
     review: "On the list — heard the mango pomelo sago is the best in the Lower Mainland.",
     details: { drinks: [] },
+    createdBy: "jfunki"
   },
 ]
 

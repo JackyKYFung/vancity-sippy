@@ -24,12 +24,14 @@ export function MyPins({
   onAddPin,
   onPinSelect,
   onColorChange,
+  onPinHover,
 }: {
   pins: Pin[]
   setPins: React.Dispatch<React.SetStateAction<Pin[]>>
   onAddPin: () => void
   onPinSelect: (pin: Pin) => void
   onColorChange: (color: string) => void
+  onPinHover: (pin: Pin | null) => void
 }) {
   const [pinColor, setPinColor] = useState("#6366f1")
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
@@ -132,6 +134,8 @@ export function MyPins({
               role="button"
               tabIndex={0}
               onClick={() => onPinSelect(pin)}
+              onMouseEnter={() => onPinHover(pin)}
+              onMouseLeave={() => onPinHover(null)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault()

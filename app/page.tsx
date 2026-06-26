@@ -39,6 +39,8 @@ export default function Page() {
   const [previousTab, setPreviousTab] = useState<Tab>("all-pins")
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
 
+  const [hoveredPin, setHoveredPin] = useState<Pin | null>(null)
+
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral>({
     lat: 49.2827,
     lng: -123.1207,
@@ -161,6 +163,7 @@ export default function Page() {
               <AllPins
                 pins={pins}
                 onPinSelect={(pin) => handlePinSelect(pin, "all-pins")}
+                onPinHover={setHoveredPin}
               />
             </div>
 
@@ -171,6 +174,7 @@ export default function Page() {
                 onAddPin={() => setView("add-pin")}
                 onPinSelect={(pin) => handlePinSelect(pin, "my-pins")}
                 onColorChange={handleGlobalColorChange}
+                onPinHover={setHoveredPin}
               />
             </div>
 
@@ -189,7 +193,12 @@ export default function Page() {
         </div>
 
         <div className="relative hidden h-full flex-1 md:block">
-          <MapCanvas center={mapCenter} pins={pins} />
+          <MapCanvas 
+            center={mapCenter} 
+            pins={pins} 
+            hoveredPin={hoveredPin}
+            setHoveredPin={setHoveredPin}
+            />
         </div>
       </div>
     </main>

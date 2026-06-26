@@ -209,3 +209,21 @@
   box-shadow: 0 0 0 1px var(--primary);
   cursor: pointer;
 }
+
+/* Custom global overrides to completely clean up Google Maps InfoWindow containers */
+.gm-style .gm-style-iw-c {
+  background-color: #18181b !important; /* Matches Tailwind's bg-zinc-900 */
+  border: 1px solid #27272a !important; /* Matches Tailwind's border-zinc-800 */
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5) !important;
+  padding: 0 !important;
+}
+
+/* Forces the small pointer arrow at the bottom to match the dark background background */
+.gm-style .gm-style-iw-tc::after {
+  background-color: #18181b !important;
+}
+
+/* Hides the default close container area padding completely */
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+}

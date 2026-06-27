@@ -35,7 +35,7 @@ function tabForView(view: View, previousTab: Tab): Tab {
 
 export default function Page() {
   // 1. States & Authenticators
-  const [user, setUser] = useState<{ id: string; email: string; username: string } | null>(null)
+  const [user, setUser] = useState<{ id: string; email: string; username: string; isMaster: boolean } | null>(null)
   const [pins, setPins] = useState<Pin[]>([]) // 🟢 Single, unified pins state
   const [view, setView] = useState<View>("all-pins")
   const [previousTab, setPreviousTab] = useState<Tab>("all-pins")
@@ -99,29 +99,42 @@ export default function Page() {
 
   // 3. Sync Authentication Session Changes
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 1. Helper function to combine Auth data with database profile data
+    const handleUserSession = async (session: any) => {
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email ?? "",
-          username: session.user.user_metadata?.username || "anonymous"
-        })
-      }
-    })
+        // Query your custom table for the master attribute
+        const { data: profile, error } = await supabase
+          .from("profiles") // 🟢 Change to your exact profiles table name
+          .select("is_master")
+          .eq("id", session.user.id)
+          .single()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
+          console.log("Supabase Auth User ID:", session.user.id)
+    console.log("Supabase Profiles Row Data Found:", profile)
+    if (error) console.error("Database query error:", error)
+  
         setUser({
           id: session.user.id,
           email: session.user.email ?? "",
-          username: session.user.user_metadata?.username || "anonymous"
+          username: session.user.user_metadata?.username || "anonymous",
+          isMaster: profile?.is_master ?? false // 🟢 Convert string indicator to clean boolean
         })
       } else {
         setUser(null)
-        setView("all-pins") 
+        setView("all-pins")
       }
+    }
+  
+    // 2. Run check on initial mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleUserSession(session)
     })
-
+  
+    // 3. Listen to auth state transitions (Login, Logout, Token refreshes)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      handleUserSession(session)
+    })
+  
     return () => subscription.unsubscribe()
   }, [])
 
@@ -288,6 +301,7 @@ export default function Page() {
             <div className={cn("h-full", view !== "add-pin" && "hidden")}>
               <AddPin
                 onLocationSelect={(coords) => setMapCenter(coords)}
+                user={user}
               />
             </div>
 

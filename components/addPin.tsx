@@ -27,19 +27,24 @@ import { createClient } from "@supabase/supabase-js"
 // 🟢 Import your newly generated types
 import { Database } from "@/lib/database.types" 
 
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // 🟢 Pass <Database> here so the client knows your tables!
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
-interface AddPinViewProps {
-  onLocationSelect: (coords: google.maps.LatLngLiteral) => void
+interface AddPinProps {
+  // 🟢 User permission context passed down from page.tsx
+  user: { id: string; email: string; username: string; isMaster: boolean } | null
+
+  // 🟢 Callback handler function from your view setup
+  onLocationSelect?: (location: { lat: number; lng: number }) => void
 }
 
-export function AddPin({ onLocationSelect }: AddPinViewProps) {
-  const apiIsLoaded = useApiIsLoaded() // 1. Check if the global Google script is loaded
-
+export function AddPin({ onLocationSelect, user }: AddPinProps) {
+  const apiIsLoaded = useApiIsLoaded() // Check if global Google script is loaded
+  
   const [name, setName] = useState("")
   const [drink, setDrink] = useState("")
   const [rating, setRating] = useState(2.5)
@@ -47,12 +52,13 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
   const [neighborhood, setNeighborhood] = useState("Downtown")
   const [customDrinks, setCustomDrinks] = useState<string[]>(["Cortado"])
 
-  const [status, setStatus] = useState<"visited" | "to-visit">("visited")
+  const [status, setStatus] = useState("visited")
   const [outlets, setOutlets] = useState<boolean | null>(true)
   const [seating, setSeating] = useState<"ample" | "limited" | null>("ample")
   const [noise, setNoise] = useState<"quiet" | "lively" | null>("quiet")
   const [drinkTypes, setDrinkTypes] = useState<DrinkType[]>(["Coffee"])
   const [customInput, setCustomInput] = useState("")
+
 
   const resetFormFields = () => {
     setName("")
@@ -70,12 +76,6 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
     const v = customInput.trim()
     if (v && !customDrinks.includes(v)) setCustomDrinks((p) => [...p, v])
     setCustomInput("")
-  }
-
-  interface AddPinProps {
-    lat: number
-    lng: number
-    // or maybe it's passed as an object: selectedCoords: { lat: number; lng: number }
   }
 
   const toggleDrinkType = (d: DrinkType) =>
@@ -114,7 +114,7 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
 
       setSelectedCoords(coords)
 
-      onLocationSelect(coords);
+      onLocationSelect?.(coords);
       
       console.log("Selected Location Coordinates:", coords)
     } catch (error) {
@@ -184,6 +184,12 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
     resetFormFields()
   }
 
+  useEffect(() => {
+    if (user && !user.isMaster) {
+      setStatus("visited")
+    }
+  }, [user])
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-border px-5 py-4">
@@ -228,17 +234,26 @@ export function AddPin({ onLocationSelect }: AddPinViewProps) {
         </Field>
 
         {/* Visited status segmented control */}
+        {user?.isMaster && (
         <Field label="Visited status">
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary p-1">
             <SegBtn active={status === "visited"} onClick={() => setStatus("visited")} icon={Check} label="Visited" />
-            <SegBtn active={status === "to-visit"} onClick={() => setStatus("to-visit")} icon={Clock} label="To-Visit" />
-          </div>
+          
+            
+              <SegBtn 
+                active={status === "to-visit"} 
+                onClick={() => setStatus("to-visit")} 
+                icon={Clock} 
+                label="To-Visit" 
+              />
+            </div>
           {status === "to-visit" && (
             <p className="mt-2 text-[11px] text-muted-foreground">
               This place renders as a gray marker on the map until you visit it.
             </p>
           )}
         </Field>
+        )}
 
         {/* Rating slider — Option 1 */}
         <Field label="Your rating">

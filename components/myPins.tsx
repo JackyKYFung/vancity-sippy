@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronDown, MapPin, Palette, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
@@ -36,13 +36,40 @@ export function MyPins({
   const [pinColor, setPinColor] = useState("#6366f1")
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
 
-  const myPins = pins.filter((p) => p.isMine)
 
+
+  const myPins = pins.filter((p) => p.isMine)
   const isLimitReached = myPins.length >= PIN_LIMIT
 
-  const handleColorUpdate = (newColor: string) => {
+  const handleColorUpdate = async (newColor: string) => {
     setPinColor(newColor)
+    
+    // 🟢 1. Update ONLY your pins in the frontend state instantly
+    // This prevents the map from overriding other accounts' pins
+    setPins((prevPins) =>
+      prevPins.map((pin) =>
+        pin.isMine ? { ...pin, color: newColor } : pin
+      )
+    )
+  
+    // 🟢 2. Pass the new color up, but ensure your map component is 
+    // reading `pin.color` per marker instead of a single global tracking variable!
     onColorChange(newColor)
+  
+    if (!myPins.length) return
+  
+    try {
+      const currentUserId = (await supabase.auth.getUser()).data.user?.id
+      if (!currentUserId) return
+  
+      const { error } = await (supabase.from("pins") as any)
+        .update({ color: newColor })
+        .eq("user_id", currentUserId) // Cleaned up syntax target
+  
+      if (error) console.error("Error saving color to pins:", error.message)
+    } catch (err) {
+      console.error("Failed to update pin colors:", err)
+    }
   }
 
   const handleDeletePin = async (e: React.MouseEvent, pinId: string) => {
@@ -102,7 +129,8 @@ export function MyPins({
               Pin Color
               <span
                 className="size-4 rounded-full border border-border"
-                style={{ backgroundColor: pinColor }}
+                // 🟢 Uses the active pin's color first, falling back to the picker state
+                style={{ backgroundColor: myPins[0]?.color || pinColor }}
               />
             </span>
             <ChevronDown
@@ -157,9 +185,9 @@ export function MyPins({
             >
               <div
                 className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-                style={{ backgroundColor: `${pinColor}20` }}
+                style={{ backgroundColor: `${pin.color || pinColor}20` }}
               >
-                <MapPin className="size-5" style={{ color: pinColor }} />
+                <MapPin className="size-5" style={{ color: pin.color || pinColor }} />
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-sm font-semibold">{pin.name}</h3>

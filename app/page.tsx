@@ -109,9 +109,9 @@ export default function Page() {
           .eq("id", session.user.id)
           .single()
 
-          console.log("Supabase Auth User ID:", session.user.id)
-    console.log("Supabase Profiles Row Data Found:", profile)
-    if (error) console.error("Database query error:", error)
+          // console.log("Supabase Auth User ID:", session.user.id)
+          // console.log("Supabase Profiles Row Data Found:", profile)
+          // if (error) console.error("Database query error:", error)
   
         setUser({
           id: session.user.id,
@@ -183,7 +183,10 @@ export default function Page() {
 
   const handleGlobalColorChange = (newColor: string) => {
     setPins((prevPins) =>
-      prevPins.map((pin) => ({ ...pin, color: newColor }))
+      prevPins.map((pin) => 
+        // 🟢 ONLY update the color if it's your pin! Otherwise, leave it alone.
+        pin.isMine ? { ...pin, color: newColor } : pin
+      )
     )
   }
 

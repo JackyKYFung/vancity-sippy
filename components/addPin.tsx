@@ -1,64 +1,59 @@
 "use client"
 
-import React, { useState, useEffect, SubmitEvent } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Search,
   Check,
   Clock,
-  Plug,
-  PlugZap,
-  Armchair,
-  Volume2,
-  VolumeX,
-  Upload,
   X,
   Plus,
   MapPin,
   Coffee,
+  Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarRating } from "@/components/star-rating"
-import { DRINK_TYPES, VisitStatus, type DrinkType } from "@/types/map"
-// Added hook imports right here
+import { DRINK_TYPES, VisitStatus, type DrinkType , type Pin } from "@/types/map"
 import usePlacesAutocomplete, { getGeocode, getLatLng } from "use-places-autocomplete"
-import { useApiIsLoaded } from "@vis.gl/react-google-maps" // Add this line
+import { useApiIsLoaded } from "@vis.gl/react-google-maps" 
 
 import { createClient } from "@supabase/supabase-js"
-// 🟢 Import your newly generated types
 import { Database } from "@/lib/database.types" 
-
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// 🟢 Pass <Database> here so the client knows your tables!
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
-interface AddPinProps {
-  // 🟢 User permission context passed down from page.tsx
-  user: { id: string; email: string; username: string; isMaster: boolean } | null
-
-  // 🟢 Callback handler function from your view setup
-  onLocationSelect?: (location: { lat: number; lng: number }) => void
-}
-
-export function AddPin({ onLocationSelect, user }: AddPinProps) {
-  const apiIsLoaded = useApiIsLoaded() // Check if global Google script is loaded
+export function AddPin({
+  onLocationSelect,
+  user,
+  pinColor,
+  setPins,
+}: {
+  onLocationSelect: (coords: google.maps.LatLngLiteral) => void
+  user: any
+  pinColor: string
+  setPins: React.Dispatch<React.SetStateAction<Pin[]>>
+}) {
+  const [notification, setNotification] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error";
+  } | null>(null); 
+  
+  const apiIsLoaded = useApiIsLoaded() 
   
   const [name, setName] = useState("")
-  const [drink, setDrink] = useState("")
   const [rating, setRating] = useState(2.5)
   const [categories, setCategories] = useState<string[]>([])
   const [neighborhood, setNeighborhood] = useState("Downtown")
-  const [customDrinks, setCustomDrinks] = useState<string[]>(["Cortado"])
+  const [customDrinks, setCustomDrinks] = useState<string[]>([])
 
   const [status, setStatus] = useState("visited")
-  const [outlets, setOutlets] = useState<boolean | null>(true)
-  const [seating, setSeating] = useState<"ample" | "limited" | null>("ample")
-  const [noise, setNoise] = useState<"quiet" | "lively" | null>("quiet")
   const [drinkTypes, setDrinkTypes] = useState<DrinkType[]>(["Coffee"])
   const [customInput, setCustomInput] = useState("")
-
 
   const resetFormFields = () => {
     setName("")
@@ -67,7 +62,6 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
     setDrinkTypes([])
     setCustomDrinks([]) 
     setStatus("to-visit") 
-    
     setSelectedCoords(null)
     setSearchValue("") 
   }
@@ -81,8 +75,6 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
   const toggleDrinkType = (d: DrinkType) =>
     setDrinkTypes((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
   
-
-  // Google Places Autocomplete Hook
   const {
     ready,
     value: searchValue,
@@ -92,14 +84,12 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
   } = usePlacesAutocomplete({
     requestOptions: {
       componentRestrictions: { country: "ca" },
-      // Use a plain object literal instead of the LatLng constructor
       locationBias: { lat: 49.2827, lng: -123.1207 },
     },
     debounce: 300,
     initOnMount: apiIsLoaded,
   })
 
-  // Track the lat/lng coordinates of the selected place to send back to your main map later
   const [selectedCoords, setSelectedCoords] = useState<google.maps.LatLngLiteral | null>(null)
 
   const handlePlaceSelect = async (address: string) => {
@@ -109,14 +99,9 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
     try {
       const results = await getGeocode({ address })
       const { lat, lng } = await getLatLng(results[0])
-
-      const coords = {lat, lng};
-
+      const coords = { lat, lng };
       setSelectedCoords(coords)
-
       onLocationSelect?.(coords);
-      
-      console.log("Selected Location Coordinates:", coords)
     } catch (error) {
       console.error("Error retrieving coordinates from Google:", error)
     }
@@ -124,62 +109,92 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
 
   const handleFormSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
-
-    // Safety check: Make sure they actually picked a spot on the map first!
+  
     if (!selectedCoords) {
-      alert("Please search for and select a location from the search bar first!")
+      setNotification({
+        isOpen: true,
+        title: "Location Required",
+        message: "Please search for and select a location from the search bar first!",
+        type: "error"
+      })
       return
     }
-
-    // 1. Grab the active authenticated session context parameters
+  
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) {
-      alert("Please log in to save your custom coffee spots!")
+      setNotification({
+        isOpen: true,
+        title: "Authentication Required",
+        message: "Please log in to save your custom coffee spots!",
+        type: "error"
+      })
       return
     }
-
-    // 2. Fetch the metadata username string that your trigger syncs up
+  
     const creatorUsername = session.user.user_metadata?.username || "anonymous"
-
-    // 3. Insert the new row into your public "pins" table
+    let chosenColor = pinColor || "#6366f1";
+  
     const { data, error } = await supabase
-    .from("pins")
-    .insert([
-      {
-        // 1. Core structural columns that exist natively on your table:
-        name: name || searchValue.split(",")[0],        
-        lat: selectedCoords.lat, 
-        lng: selectedCoords.lng,
-        user_id: session.user.id,
-        status: status, // Matches your 'status' column ("visited" | "to-visit")
-
-        // 2. Pack everything else into your flexible jsonb 'details' column!
-        details: {
-          drinks: customDrinks.length > 0 ? customDrinks : [
-            {
-              name: "Regular Coffee",
-              rating: 5,
-              user: creatorUsername, // Attaches the actual logged-in user name
-              status: "visited",
-              amenities: [],
-              review: "Default log entry."
-            }
-          ],
-          drinkTypes: drinkTypes,
-          rating: Number(rating),
-          neighborhood: neighborhood || "Vancouver",
-          created_by: creatorUsername,
+      .from("pins")
+      .insert([
+        {
+          name: name || searchValue.split(",")[0],        
+          lat: selectedCoords.lat, 
+          lng: selectedCoords.lng,
+          user_id: session.user.id,
+          status: status,
+          color: chosenColor, 
+          details: {
+            drinks: customDrinks.length > 0 ? customDrinks : [
+              {
+                name: "Regular Coffee",
+                rating: 5,
+                user: creatorUsername,
+                status: "visited",
+                amenities: [],
+                review: "Default log entry."
+              }
+            ],
+            drinkTypes: drinkTypes,
+            rating: Number(rating),
+            neighborhood: neighborhood || "Vancouver",
+            created_by: creatorUsername,
+          }
         }
-      }
-    ])
-    .select()
-
+      ])
+      .select()
+  
     if (error) {
-      alert(`Could not save pin: ${error.message}`)
+      setNotification({
+        isOpen: true,
+        title: "Database Error",
+        message: `Could not save pin: ${error.message}`,
+        type: "error"
+      })
       return
     }
-
-    alert("Coffee spot saved successfully! ☕")
+  
+    if (data && data.length > 0) {
+      const newPinFromServer = data[0]
+      
+      const formattedPin: Pin = {
+        ...newPinFromServer,
+        isMine: true,
+        createdBy: creatorUsername,
+        category: categories || [],
+        color: chosenColor,
+        pinColor: chosenColor, 
+      } as unknown as Pin
+  
+      setPins((prevPins) => [...prevPins, formattedPin])
+    }
+  
+    setNotification({
+      isOpen: true,
+      title: "Spot Saved! ☕",
+      message: "Your new pin has been added to the map!",
+      type: "success"
+    })
 
     resetFormFields()
   }
@@ -216,7 +231,6 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
               className="w-full rounded-xl border border-input bg-secondary py-2.5 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50 disabled:opacity-50"
             />
 
-            {/* Dropdown Results Box */}
             {autocompleteStatus === "OK" && (
               <ul className="absolute z-50 mt-1.5 w-full rounded-xl border border-border bg-card shadow-2xl max-h-60 overflow-y-auto p-1">
                 {suggestionsData.map(({ place_id, description }) => (
@@ -235,27 +249,20 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
 
         {/* Visited status segmented control */}
         {user?.isMaster && (
-        <Field label="Visited status">
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary p-1">
-            <SegBtn active={status === "visited"} onClick={() => setStatus("visited")} icon={Check} label="Visited" />
-          
-            
-              <SegBtn 
-                active={status === "to-visit"} 
-                onClick={() => setStatus("to-visit")} 
-                icon={Clock} 
-                label="To-Visit" 
-              />
+          <Field label="Visited status">
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary p-1">
+              <SegBtn active={status === "visited"} onClick={() => setStatus("visited")} icon={Check} label="Visited" />
+              <SegBtn active={status === "to-visit"} onClick={() => setStatus("to-visit")} icon={Clock} label="To-Visit" />
             </div>
-          {status === "to-visit" && (
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              This place renders as a gray marker on the map until you visit it.
-            </p>
-          )}
-        </Field>
+            {status === "to-visit" && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                This place renders as a gray marker on the map until you visit it.
+              </p>
+            )}
+          </Field>
         )}
 
-        {/* Rating slider — Option 1 */}
+        {/* Rating slider */}
         <Field label="Your rating">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -273,20 +280,12 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
               style={{ ["--pct" as string]: `${(rating / 5) * 100}%` }}
               aria-label="Rating"
             />
-
           </div>
         </Field>
 
         {/* Custom drink input */}
         <Field label="What drink did you have?">
           <div className="flex flex-col gap-2">
-            {/* Labels Row */}
-            <div className="flex gap-3 text-xs font-medium text-muted-foreground">
-              <span className="flex-1">Drink Name</span>
-              <span className="w-24">Price</span>
-            </div>
-
-            {/* Inputs Row */}
             <div className="flex w-full gap-2">
               <input
                 value={customInput}
@@ -300,70 +299,60 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
                 placeholder="e.g., Mango Pomelo Sago"
                 className="min-w-0 flex-1 rounded-xl border border-input bg-secondary px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
               />
-              
-              {/* Fixed: Dedicated Price Input with a solid, rigid width constraint */}
-              <input
-                type="text"
-                placeholder="$6.50"
-                className="w-24 min-w-0 rounded-xl border border-input bg-secondary px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
-              />
             </div>
             <div className="flex gap-3 text-xs font-medium text-muted-foreground">
               <span className="flex-1">Drink Type</span>
             </div>
             <div className="flex flex-wrap gap-2">
-            {DRINK_TYPES.map((d) => {
-              const active = drinkTypes.includes(d)
-              return (
-                <button
-                  key={d}
-                  onClick={() => toggleDrinkType(d)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
-                    active
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {d}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="pt-4">
-          <button 
-            onClick={addCustomDrink}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-            <Coffee className="size-4" />
-            Add Drink
-          </button>
-        </div>
-
-
-        {customDrinks.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {customDrinks.map((d) => (
-                <span
-                  key={d}
-                  className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 py-1 pl-2.5 pr-1.5 text-[11px] font-medium text-primary"
-                >
-                  {d}
+              {DRINK_TYPES.map((d) => {
+                const active = drinkTypes.includes(d)
+                return (
                   <button
-                    onClick={() => setCustomDrinks((p) => p.filter((x) => x !== d))}
-                    className="flex size-4 items-center justify-center rounded-full hover:bg-primary/20"
-                    aria-label={`Remove ${d}`}
+                    key={d}
+                    onClick={() => toggleDrinkType(d)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
+                      active
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
                   >
-                    <X className="size-3" />
+                    {d}
                   </button>
-                </span>
-              ))}
+                )
+              })}
             </div>
-          )}
+
+            <div className="pt-4">
+              <button 
+                onClick={addCustomDrink}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+                <Coffee className="size-4" />
+                Add Drink
+              </button>
+            </div>
+
+            {customDrinks.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {customDrinks.map((d) => (
+                  <span
+                    key={d}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 py-1 pl-2.5 pr-1.5 text-[11px] font-medium text-primary"
+                  >
+                    {d}
+                    <button
+                      onClick={() => setCustomDrinks((p) => p.filter((x) => x !== d))}
+                      className="flex size-4 items-center justify-center rounded-full hover:bg-primary/20"
+                      aria-label={`Remove ${d}`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </Field>
-
-
 
         {/* File upload */}
         <Field label="Upload a photo (optional)">
@@ -378,16 +367,48 @@ export function AddPin({ onLocationSelect, user }: AddPinProps) {
         </Field>
       </div>
 
-    {/* Submit */}
-    <div className="border-t border-border px-5 py-4">
+      {/* Submit Section */}
+      <div className="border-t border-border px-5 py-4">
         <button 
-          onClick={handleFormSubmit} // 🟢 Connect the submission handler here!
+          onClick={handleFormSubmit} 
           className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >
           <MapPin className="size-4" />
           Add Pin
         </button>
       </div>
+
+      {/* 🟢 FIXED: Modal is now correctly inside the return statement of AddPin! */}
+      {notification?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-xs scale-100 rounded-2xl border border-border bg-card p-5 shadow-2xl animate-in zoom-in-95 duration-150 text-center">
+            
+            <div className={cn(
+              "mx-auto mb-3 flex size-12 items-center justify-center rounded-full text-xl",
+              notification.type === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
+            )}>
+              {notification.type === "success" ? "✓" : "✕"}
+            </div>
+
+            <h3 className="text-sm font-semibold text-foreground">{notification.title}</h3>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              {notification.message}
+            </p>
+            
+            <div className="mt-4">
+              <button
+                onClick={() => setNotification(null)} 
+                className={cn(
+                  "w-full rounded-xl px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90",
+                  notification.type === "success" ? "bg-emerald-600" : "bg-destructive"
+                )}
+              >
+               Got it 
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -400,8 +421,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   )
 }
-
-// ... Subcomponents (SegBtn, AmenityGroup) remain unchanged below
 
 function SegBtn({
   active,

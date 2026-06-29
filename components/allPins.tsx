@@ -51,7 +51,6 @@ export function AllPins({
           <div className="flex flex-wrap items-center gap-2">
             <FilterChip icon={ArrowUpDown} label="Rating" active={activeFilters.includes("Rating")} onClick={() => toggleFilter("Rating")} dropdown />
             <FilterChip icon={MapPin} label="Distance" active={activeFilters.includes("Distance")} onClick={() => toggleFilter("Distance")} dropdown />
-            <FilterChip icon={DollarSign} label="Price" active={activeFilters.includes("Price")} onClick={() => toggleFilter("Price")} dropdown />
             <FilterChip icon={User} label="User" active={activeFilters.includes("User")} onClick={() => toggleFilter("User")} dropdown />
           </div>
         </div>

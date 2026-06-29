@@ -47,7 +47,9 @@ export default function Page() {
     lng: -123.1207,
   })
 
-  // 2. Fetch Pins from Database (🟢 Moved inside the component scope!)
+  const [pinColor, setPinColor] = useState<string>("#6366f1");
+
+  // 2. Fetch Pins from Database
   useEffect(() => {
     async function fetchDatabasePins() {
       const { data, error } = await supabase
@@ -60,9 +62,17 @@ export default function Page() {
         return
       }
   
+      // 🟢 Keep track of any color found on your existing database entries
+      let userSavedColor: string | null = null;
+
       const formattedPins: Pin[] = (data || []).map((p) => {
-        // Safely unpack your JSON details column (fallback to empty object if null)
         const details = (p.details as any) || {}
+        const isMine = user ? p.user_id === user.id : false;
+
+        // 🟢 If this pin belongs to the user, capture its color configuration
+        if (isMine && p.color) {
+          userSavedColor = p.color;
+        }
   
         return {
           id: p.id || "", 
@@ -71,29 +81,32 @@ export default function Page() {
           lng: p.lng ?? 0, 
           color: p.color || "#6366f1",
           distanceKm: 0, 
-          isMine: user ? p.user_id === user.id : false,
+          isMine: isMine,
   
-          // Pull form data out of the jsonb details object
           neighborhood: details.neighborhood || "Vancouver",
           rating: details.rating || 0,
           category: details.drinkTypes || [],
           drink: Array.isArray(details.drinks) ? details.drinks.join(", ") : (details.drinks || "Coffee"),
           createdBy: details.created_by || "anonymous",
   
-          // 🟢 FIX: Map the remaining fields your strict frontend Pin interface demands
           status: (p.status || "want-to-go") as VisitStatus,
           owner: details.created_by || "anonymous",
           amenities: details.amenities || [],
           review: details.review || "",
-          details: details // Pass the unpacked details object down if required
+          details: details
         }
       })
   
       setPins(formattedPins)
+
+      // 🟢 If a user-saved custom color was found in their data workspace, sync it up to the active configuration!
+      if (userSavedColor) {
+        setPinColor(userSavedColor);
+      }
     }
   
     fetchDatabasePins()
-  }, [user]) 
+  }, [user])
 
   
 
@@ -204,10 +217,24 @@ export default function Page() {
           <header className="shrink-0 border-b border-border bg-sidebar">
             <div className="px-4 py-4 text-center">
               <h1 className="text-xl font-semibold tracking-tight">Vancity Sippy</h1>
-              <p className="inline-flex items-center justify-center gap-1.5 text-xs text-muted-foreground max-w-[250px] mx-auto mt-3">
+              <p className="inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground max-w-[250px] mx-auto mt-3">
+              {!user ? (
+                <>
                 <span>Share your favourite sipping spots</span>
                 <Coffee className="size-3.5 shrink-0" />
-              </p>
+                </>
+              ) : (
+                <>
+                <span>Welcome back, {" "} 
+                  <span 
+                    className="font-bold"
+                    style={{ color: pinColor }}>
+                    {user.username}
+                  </span>
+                </span>
+                </>
+              )}
+              </p> 
             </div>
             
             <div className="w-full p-4 border-t border-gray-800">
@@ -291,20 +318,27 @@ export default function Page() {
             </div>
 
             <div className={cn("h-full", view !== "my-pins" && "hidden")}>
-              <MyPins
-                pins={pins}
-                setPins={setPins}
-                onAddPin={() => setView("add-pin")}
-                onPinSelect={(pin) => handlePinSelect(pin, "my-pins")}
-                onColorChange={handleGlobalColorChange}
-                onPinHover={setHoveredPin}
-              />
+            <MyPins
+              pins={pins}
+              setPins={setPins}
+              pinColor={pinColor} // Passes down the parent state
+              setPinColor={setPinColor} // Passes down the parent state setter
+              isMaster={user?.isMaster || false}
+              onPinHover={setHoveredPin}
+              onColorChange={(newColor) => {
+                handleGlobalColorChange(newColor);
+                setPinColor(newColor); 
+              }}
+              onAddClick={() => setView("add-pin")}
+            />
             </div>
 
             <div className={cn("h-full", view !== "add-pin" && "hidden")}>
               <AddPin
                 onLocationSelect={(coords) => setMapCenter(coords)}
                 user={user}
+                pinColor={pinColor}
+                setPins={setPins}
               />
             </div>
 

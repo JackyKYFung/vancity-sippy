@@ -10,13 +10,12 @@ import { PinDetails } from "@/components/pinDetails"
 import { MapCanvas } from "@/components/map-canvas"
 import { AuthView } from "@/components/auth-view";
 import { createClient } from '@supabase/supabase-js'
-import { Database } from '@/lib/database.types' // 🟢 Make sure this points to your new file!
+import { Database } from '@/lib/database.types' 
 import { Pin, VisitStatus } from "@/types/map"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Pass the <Database> type here so the whole app inherits it globally
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
 type Tab = "all-pins" | "my-pins"
@@ -36,7 +35,7 @@ function tabForView(view: View, previousTab: Tab): Tab {
 export default function Page() {
   // 1. States & Authenticators
   const [user, setUser] = useState<{ id: string; email: string; username: string; isMaster: boolean } | null>(null)
-  const [pins, setPins] = useState<Pin[]>([]) // 🟢 Single, unified pins state
+  const [pins, setPins] = useState<Pin[]>([]) 
   const [view, setView] = useState<View>("all-pins")
   const [previousTab, setPreviousTab] = useState<Tab>("all-pins")
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null)
@@ -48,11 +47,7 @@ export default function Page() {
   })
 
   const [pinColor, setPinColor] = useState<string>("#6366f1");
-
-  // 🟢 1. ADD THIS SORT STATE HERE
   const [sortBy, setSortBy] = useState<"rating-desc" | "rating-asc" | "distance" | "user" | "newest">("newest")
-  
-  // ... (Keep your existing useEffect hooks for data fetching and auth here) ...
 
   const aggregatedPins = [...pins].reduce((acc: Pin[], current) => {
     const existingLoc = acc.find(
@@ -71,19 +66,17 @@ export default function Page() {
         existingLoc.details.drinks = [...existingDrinks, ...incomingDrinks]
       }
     } else {
-      // 🟢 KEEP ALL NEIGHBORHOOD FIELDS (Burnaby vs Downtown) & PLACE METADATA
       acc.push({
         ...current,
         neighborhood: current.details?.neighborhood || current.neighborhood, 
         details: current.details ? { 
-          ...current.details, // 🟢 This preserves formatted_address, weekday_text, etc.
+          ...current.details, 
           drinks: (current.details.drinks || []).map((d: any) => ({
             ...(typeof d === 'string' ? { name: d } : d),
             user: current.createdBy || "anonymous",
             userColor: current.color
           }))
         } : {
-          // Fallback layout if no details payload was saved on original creation index
           drinks: [{
             name: current.drink || "Regular Coffee",
             rating: current.rating || 5,
@@ -99,13 +92,12 @@ export default function Page() {
     return acc
   }, [])
 
-// Now run your existing filters and sorting methods over the aggregated list
-const sortedPins = aggregatedPins.sort((a, b) => {
-  if (sortBy === "rating-desc") return (b.details?.rating || b.rating || 0) - (a.details?.rating || a.rating || 0)
-  if (sortBy === "rating-asc") return (a.details?.rating || a.rating || 0) - (b.details?.rating || b.rating || 0)
-  if (sortBy === "distance") return (a.distanceKm || 0) - (b.distanceKm || 0)
-  return String(b.id).localeCompare(String(a.id))
-})
+  const sortedPins = aggregatedPins.sort((a, b) => {
+    if (sortBy === "rating-desc") return (b.details?.rating || b.rating || 0) - (a.details?.rating || a.rating || 0)
+    if (sortBy === "rating-asc") return (a.details?.rating || a.rating || 0) - (b.details?.rating || b.rating || 0)
+    if (sortBy === "distance") return (a.distanceKm || 0) - (b.distanceKm || 0)
+    return String(b.id).localeCompare(String(a.id))
+  })
 
   // 2. Fetch Pins from Database
   useEffect(() => {
@@ -120,14 +112,12 @@ const sortedPins = aggregatedPins.sort((a, b) => {
         return
       }
   
-      // 🟢 Keep track of any color found on your existing database entries
       let userSavedColor: string | null = null;
 
       const formattedPins: Pin[] = (data || []).map((p) => {
         const details = (p.details as any) || {}
         const isMine = user ? p.user_id === user.id : false;
 
-        // 🟢 If this pin belongs to the user, capture its color configuration
         if (isMine && p.color) {
           userSavedColor = p.color;
         }
@@ -157,7 +147,6 @@ const sortedPins = aggregatedPins.sort((a, b) => {
   
       setPins(formattedPins)
 
-      // 🟢 If a user-saved custom color was found in their data workspace, sync it up to the active configuration!
       if (userSavedColor) {
         setPinColor(userSavedColor);
       }
@@ -166,29 +155,21 @@ const sortedPins = aggregatedPins.sort((a, b) => {
     fetchDatabasePins()
   }, [user])
 
-  
-
   // 3. Sync Authentication Session Changes
   useEffect(() => {
-    // 1. Helper function to combine Auth data with database profile data
     const handleUserSession = async (session: any) => {
       if (session?.user) {
-        // Query your custom table for the master attribute
-        const { data: profile, error } = await supabase
-          .from("profiles") // 🟢 Change to your exact profiles table name
+        const { data: profile } = await supabase
+          .from("profiles") 
           .select("is_master")
           .eq("id", session.user.id)
           .single()
-
-          // console.log("Supabase Auth User ID:", session.user.id)
-          // console.log("Supabase Profiles Row Data Found:", profile)
-          // if (error) console.error("Database query error:", error)
   
         setUser({
           id: session.user.id,
           email: session.user.email ?? "",
           username: session.user.user_metadata?.username || "anonymous",
-          isMaster: profile?.is_master ?? false // 🟢 Convert string indicator to clean boolean
+          isMaster: profile?.is_master ?? false 
         })
       } else {
         setUser(null)
@@ -196,12 +177,10 @@ const sortedPins = aggregatedPins.sort((a, b) => {
       }
     }
   
-    // 2. Run check on initial mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       handleUserSession(session)
     })
   
-    // 3. Listen to auth state transitions (Login, Logout, Token refreshes)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       handleUserSession(session)
     })
@@ -255,7 +234,6 @@ const sortedPins = aggregatedPins.sort((a, b) => {
   const handleGlobalColorChange = (newColor: string) => {
     setPins((prevPins) =>
       prevPins.map((pin) => 
-        // 🟢 ONLY update the color if it's your pin! Otherwise, leave it alone.
         pin.isMine ? { ...pin, color: newColor } : pin
       )
     )
@@ -269,101 +247,133 @@ const sortedPins = aggregatedPins.sort((a, b) => {
   }, [pins, selectedPin, previousTab])
 
   return (
-    <main className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex h-full w-full max-w-md flex-col border-r border-border bg-sidebar sm:w-[280px] md:w-[350px] lg:w-[380px]">
-          <header className="shrink-0 border-b border-border bg-sidebar">
-            <div className="px-4 py-4 text-center">
-              <h1 className="text-xl font-semibold tracking-tight">Vancity Sippy</h1>
-              <div className=" items-center justify-center gap-1.5 text-sm text-muted-foreground mx-auto">
-              {!user ? (
-                <>
-                <div className="border-b flex items-center justify-center gap-1.5 whitespace-nowrap pb-2">
-                  <span>Share your favourite sipping spots</span>
-                  <Coffee className="size-3.5 shrink-0" />
-                </div>
-                {authMode === "guest" ? (
-                    <div className="py-5 text-center space-y-4">
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => setAuthMode("sign-in")}
-                          className="flex-1 bg-card border border-border py-2 text-xs font-semibold rounded-xl hover:bg-accent transition-colors"
-                        >
-                          Sign In
-                        </button>
-                        <button 
-                          onClick={() => setAuthMode("register")}
-                          className="flex-1 bg-primary hover:bg-amber-400 text-primary-foreground py-2 text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity"
-                        >
-                          Register
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <AuthView 
-                      mode={authMode} 
-                      onBack={() => setAuthMode("guest")}
-                      onSignIn={handleSignIn}
-                      onSignUp={handleSignUp}
-                    />
-                  )}
-                </>
-              ) : (
-                <>
-                <span>Welcome back, {" "} 
-                  <span 
-                    className="font-bold"
-                    style={{ color: pinColor }}>
-                    {user.username}
-                  </span>
-                </span>
-                <div className="flex flex-col h-full mt-5">
-                  <div>
-                    <button 
-                      onClick={handleSignOut}
-                      className="w-full py-2 px-4 bg-[#B80000] hover:bg-[#FF0000] text-white font-medium text-sm rounded-xl text-center transition-all"
-                    >
-                      Sign Out
-                    </button>
-                    <nav className="flex items-center gap-1 border-t border-border pt-3">
-                      {TABS.map((t) => {
-                        const Icon = t.icon
-                        const isActive = activeTab === t.id
-                        const isDisabled = t.id === "my-pins" && !user
-
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => !isDisabled && handleTabChange(t.id)}
-                            disabled={isDisabled}
-                            className={cn(
-                              "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors",
-                              isDisabled
-                                ? "opacity-40 bg-gray-100 text-gray-400 cursor-not-allowed border border-dashed border-gray-200"
-                                : isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                            )}
-                            title={isDisabled ? "Sign in to track your personal coffee spots" : undefined}
-                          >
-                            <Icon className="size-3.5" />
-                            {t.label}
-                          </button>
-                        )
-                      })}
-                    </nav>
-                  </div>
-                </div>
-                </>
-              )}
-              </div>
-               
-            </div>
+    <main className="flex h-dvh w-full flex-col md:flex-row overflow-hidden bg-background text-foreground relative">
+      
+      {/* 🌟 MOBILE ONLY FLOATING PILL */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 bg-background/80 backdrop-blur-md border border-border px-4 py-2 rounded-2xl shadow-xl max-w-[90vw] pointer-events-auto">
+        <div className="flex items-center gap-1.5 border-r border-border pr-3 shrink-0">
+          <h1 className="text-xs font-bold tracking-tight">Vancity Sippy</h1>
+          <Coffee className="size-3 text-primary" />
+        </div>
+  
+        {user ? (
+          <div className="flex flex-row items-center gap-1 whitespace-nowrap min-w-0 text-xs">
+            <span className="text-muted-foreground">Welcome back,</span>
+            <span className="font-bold truncate max-w-[100px]" style={{ color: pinColor }}>
+              {user.username}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            Share your favourite spots
+          </span>
+        )}
+      </div>
+  
+      {/* MAIN CONTENT PIPELINE WRAPPER */}
+      <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden">
+  
+        {/* 📋 SIDEBAR / BOTTOM SHEET LAYER */}
+        <div className={cn(
+          "flex flex-col bg-sidebar transition-all duration-300 shrink-0 z-10 shadow-2xl",
+          "order-last md:order-first", 
+          "h-[45vh] w-full",
+          "md:h-full md:w-[350px] lg:w-[380px] md:max-w-md md:border-r border-border"
+        )}>  
+          
+          {/* SIDEBAR HEADER */}
+          {/* 🟢 FIXED: Fixed top padding on mobile so navigation items don't hide under the floating pill header */}
+          <header className="shrink-0 bg-sidebar border-b border-border pb-3 px-4 pt-4 md:pb-4">
             
-
+            {/* 🌟 DESKTOP ONLY BRANDING & WELCOME SECTION */}
+            <div className="hidden md:flex flex-col items-center justify-center text-center mb-4 w-full">
+              <h1 className="text-xl font-semibold tracking-tight">Vancity Sippy</h1>
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+                {user ? (
+                  <div className="flex items-center gap-1 whitespace-nowrap">
+                    <span>Welcome back,</span>
+                    <span className="font-bold" style={{ color: pinColor }}>{user.username}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <span>Share your favourite sipping spots</span>
+                    <Coffee className="size-3.5 shrink-0" />
+                  </div>
+                )}
+              </div>
+            </div>
+  
+            {!user ? (
+              authMode === "guest" ? (
+                <div className="flex gap-2 w-full">
+                  <button 
+                    onClick={() => setAuthMode("sign-in")}
+                    className="flex-1 bg-card border border-border py-2 text-xs font-semibold rounded-xl hover:bg-accent transition-colors"
+                  >
+                    Sign In
+                  </button>
+                  <button 
+                    onClick={() => setAuthMode("register")}
+                    className="flex-1 bg-primary hover:bg-amber-400 text-primary-foreground py-2 text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity"
+                  >
+                    Register
+                  </button>
+                </div>
+              ) : (
+                <AuthView 
+                  mode={authMode} 
+                  onBack={() => setAuthMode("guest")}
+                  onSignIn={handleSignIn}
+                  onSignUp={handleSignUp}
+                />
+              )
+            ) : (
+              /* Navigation tabs bar + sign-out anchor */
+              <div className="flex flex-row md:flex-col items-center justify-between md:items-stretch gap-3 w-full">
+                {/* Tabs */}
+                <nav className="flex items-center gap-1 w-auto md:w-full md:border-t md:border-border md:pt-4">
+                  {TABS.map((t) => {
+                    const Icon = t.icon
+                    const isActive = activeTab === t.id
+                    const isDisabled = t.id === "my-pins" && !user
+  
+                    const [firstWord, secondWord] = t.label.split(' ')
+  
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => !isDisabled && handleTabChange(t.id)}
+                        disabled={isDisabled}
+                        className={cn(
+                          "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors whitespace-nowrap",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="size-3.5" />
+                        <span>
+                          {firstWord}{' '}
+                          <span className="hidden min-[380px]:inline md:inline">{secondWord}</span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </nav>
+  
+                {/* Sign Out */}
+                <button 
+                  onClick={handleSignOut}
+                  className="w-auto md:w-full py-1.5 px-3 md:py-2 md:px-4 bg-[#B80000] hover:bg-[#FF0000] text-white font-medium text-xs md:text-sm rounded-xl text-center transition-all shrink-0"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
           </header>
-
-          <div className="min-h-0 flex-1">
+  
+          {/* View lists (AllPins, MyPins, PinDetails) */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <div className={cn("h-full", view !== "all-pins" && "hidden")}>
               <AllPins
                 pins={sortedPins}
@@ -375,19 +385,19 @@ const sortedPins = aggregatedPins.sort((a, b) => {
             </div>
 
             <div className={cn("h-full", view !== "my-pins" && "hidden")}>
-            <MyPins
-              pins={sortedPins}
-              setPins={setPins}
-              pinColor={pinColor} // Passes down the parent state
-              setPinColor={setPinColor} // Passes down the parent state setter
-              isMaster={user?.isMaster || false}
-              onPinHover={setHoveredPin}
-              onColorChange={(newColor) => {
-                handleGlobalColorChange(newColor);
-                setPinColor(newColor); 
-              }}
-              onAddClick={() => setView("add-pin")}
-            />
+              <MyPins
+                pins={sortedPins}
+                setPins={setPins}
+                pinColor={pinColor} 
+                setPinColor={setPinColor} 
+                isMaster={user?.isMaster || false}
+                onPinHover={setHoveredPin}
+                onColorChange={(newColor) => {
+                  handleGlobalColorChange(newColor);
+                  setPinColor(newColor); 
+                }}
+                onAddClick={() => setView("add-pin")}
+              />
             </div>
 
             <div className={cn("h-full", view !== "add-pin" && "hidden")}>
@@ -405,10 +415,11 @@ const sortedPins = aggregatedPins.sort((a, b) => {
               )}
             </div>
           </div>
-        </div>
-
-        {/* 🟢 FIXED: Swap 'hidden md:block' out for 'w-0 md:w-auto' or manage visibility transitions clean without unmounting bounds */}
-        <div className="relative h-full flex-1 w-0 md:w-auto">
+        </div> {/* 🟢 FIXED: Closed the sidebar block cleanly right here */}
+  
+        {/* 🗺️ MAP WINDOW LAYER */}
+        {/* 🟢 FIXED: Moved it completely outside of the sidebar so it stands side-by-side on desktop */}
+        <div className="relative h-[55vh] w-full md:h-full md:flex-1 order-first md:order-none">  
           <MapCanvas 
             center={mapCenter} 
             pins={pins} 
@@ -419,6 +430,7 @@ const sortedPins = aggregatedPins.sort((a, b) => {
             }}
           />
         </div>
+
       </div>
     </main>
   )

@@ -55,6 +55,8 @@ export function AddPin({
   const [drinkTypes, setDrinkTypes] = useState<DrinkType[]>(["Coffee"])
   const [customInput, setCustomInput] = useState("")
 
+  const [googlePlaceDetails, setGooglePlaceDetails] = useState<google.maps.places.PlaceResult | null>(null)
+
   const resetFormFields = () => {
     setName("")
     setRating(5)  
@@ -95,13 +97,37 @@ export function AddPin({
   const handlePlaceSelect = async (address: string) => {
     setSearchValue(address, false)
     clearSuggestions()
-
+  
     try {
       const results = await getGeocode({ address })
       const { lat, lng } = await getLatLng(results[0])
-      const coords = { lat, lng };
+      const coords = { lat, lng }
       setSelectedCoords(coords)
-      onLocationSelect?.(coords);
+      onLocationSelect?.(coords)
+  
+      // 🟢 FETCH EXTRA BUSINESS METADATA VIA PLACE_ID
+      const placeId = results[0]?.place_id
+      if (placeId && typeof window !== "undefined" && window.google) {
+        // Create a dummy element or map instance to hook into the Places Service
+        const dummyDiv = document.createElement("div")
+        const service = new window.google.maps.places.PlacesService(dummyDiv)
+  
+        service.getDetails(
+          {
+            placeId: placeId,
+            // Specifying fields keeps the API response fast and budget-friendly!
+            fields: ["formatted_address", "formatted_phone_number", "opening_hours", "name"]
+          },
+          (place, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+              // 🟢 Save it to your state so handleFormSubmit can grab it!
+              setGooglePlaceDetails(place)
+            } else {
+              console.warn("Google Places Service could not find details for this Place ID.")
+            }
+          }
+        )
+      }
     } catch (error) {
       console.error("Error retrieving coordinates from Google:", error)
     }
@@ -133,7 +159,11 @@ export function AddPin({
   
     const creatorUsername = session.user.user_metadata?.username || "anonymous"
     let chosenColor = pinColor || "#6366f1";
-  
+
+    const googleAddress = googlePlaceDetails?.formatted_address || searchValue || "Address not specified"
+    const googlePhone = googlePlaceDetails?.formatted_phone_number || "No phone number available"
+    const googleHours = googlePlaceDetails?.opening_hours?.weekday_text || null
+
     const { data, error } = await supabase
       .from("pins")
       .insert([
@@ -152,13 +182,15 @@ export function AddPin({
                 user: creatorUsername,
                 status: "visited",
                 amenities: [],
-                review: "Default log entry."
               }
             ],
             drinkTypes: drinkTypes,
             rating: Number(rating),
             neighborhood: neighborhood || "Vancouver",
             created_by: creatorUsername,
+            formatted_address: googleAddress,
+            formatted_phone_number: googlePhone,
+            weekday_text: googleHours
           }
         }
       ])

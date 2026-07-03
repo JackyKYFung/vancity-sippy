@@ -49,6 +49,64 @@ export default function Page() {
 
   const [pinColor, setPinColor] = useState<string>("#6366f1");
 
+  // 🟢 1. ADD THIS SORT STATE HERE
+  const [sortBy, setSortBy] = useState<"rating-desc" | "rating-asc" | "distance" | "user" | "newest">("newest")
+  
+  // ... (Keep your existing useEffect hooks for data fetching and auth here) ...
+
+  const aggregatedPins = [...pins].reduce((acc: Pin[], current) => {
+    const existingLoc = acc.find(
+      (p) => p.lat.toFixed(4) === current.lat.toFixed(4) && p.lng.toFixed(4) === current.lng.toFixed(4)
+    )
+  
+    if (existingLoc) {
+      const existingDrinks = existingLoc.details?.drinks || []
+      const incomingDrinks = (current.details?.drinks || []).map((d: any) => ({
+        ...(typeof d === 'string' ? { name: d } : d),
+        user: current.createdBy || "anonymous",
+        userColor: current.color
+      }))
+  
+      if (existingLoc.details) {
+        existingLoc.details.drinks = [...existingDrinks, ...incomingDrinks]
+      }
+    } else {
+      // 🟢 KEEP ALL NEIGHBORHOOD FIELDS (Burnaby vs Downtown) & PLACE METADATA
+      acc.push({
+        ...current,
+        neighborhood: current.details?.neighborhood || current.neighborhood, 
+        details: current.details ? { 
+          ...current.details, // 🟢 This preserves formatted_address, weekday_text, etc.
+          drinks: (current.details.drinks || []).map((d: any) => ({
+            ...(typeof d === 'string' ? { name: d } : d),
+            user: current.createdBy || "anonymous",
+            userColor: current.color
+          }))
+        } : {
+          // Fallback layout if no details payload was saved on original creation index
+          drinks: [{
+            name: current.drink || "Regular Coffee",
+            rating: current.rating || 5,
+            user: current.createdBy || "anonymous",
+            status: current.status || "visited",
+            amenities: current.amenities || [],
+            review: current.review || "Saved entry log.",
+            userColor: current.color
+          }]
+        }
+      })
+    }
+    return acc
+  }, [])
+
+// Now run your existing filters and sorting methods over the aggregated list
+const sortedPins = aggregatedPins.sort((a, b) => {
+  if (sortBy === "rating-desc") return (b.details?.rating || b.rating || 0) - (a.details?.rating || a.rating || 0)
+  if (sortBy === "rating-asc") return (a.details?.rating || a.rating || 0) - (b.details?.rating || b.rating || 0)
+  if (sortBy === "distance") return (a.distanceKm || 0) - (b.distanceKm || 0)
+  return String(b.id).localeCompare(String(a.id))
+})
+
   // 2. Fetch Pins from Database
   useEffect(() => {
     async function fetchDatabasePins() {
@@ -213,34 +271,18 @@ export default function Page() {
   return (
     <main className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex h-full w-full max-w-md flex-col border-r border-border bg-sidebar md:w-[350px] lg:w-[380px]">
+        <div className="flex h-full w-full max-w-md flex-col border-r border-border bg-sidebar sm:w-[280px] md:w-[350px] lg:w-[380px]">
           <header className="shrink-0 border-b border-border bg-sidebar">
             <div className="px-4 py-4 text-center">
               <h1 className="text-xl font-semibold tracking-tight">Vancity Sippy</h1>
-              <p className="inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground max-w-[250px] mx-auto mt-3">
+              <div className=" items-center justify-center gap-1.5 text-sm text-muted-foreground mx-auto">
               {!user ? (
                 <>
-                <span>Share your favourite sipping spots</span>
-                <Coffee className="size-3.5 shrink-0" />
-                </>
-              ) : (
-                <>
-                <span>Welcome back, {" "} 
-                  <span 
-                    className="font-bold"
-                    style={{ color: pinColor }}>
-                    {user.username}
-                  </span>
-                </span>
-                </>
-              )}
-              </p> 
-            </div>
-            
-            <div className="w-full p-4 border-t border-gray-800">
-              {!user ? (
-                <>
-                  {authMode === "guest" ? (
+                <div className="border-b flex items-center justify-center gap-1.5 whitespace-nowrap pb-2">
+                  <span>Share your favourite sipping spots</span>
+                  <Coffee className="size-3.5 shrink-0" />
+                </div>
+                {authMode === "guest" ? (
                     <div className="py-5 text-center space-y-4">
                       <div className="flex gap-2">
                         <button 
@@ -267,7 +309,15 @@ export default function Page() {
                   )}
                 </>
               ) : (
-                <div className="flex flex-col h-full">
+                <>
+                <span>Welcome back, {" "} 
+                  <span 
+                    className="font-bold"
+                    style={{ color: pinColor }}>
+                    {user.username}
+                  </span>
+                </span>
+                <div className="flex flex-col h-full mt-5">
                   <div>
                     <button 
                       onClick={handleSignOut}
@@ -304,22 +354,29 @@ export default function Page() {
                     </nav>
                   </div>
                 </div>
+                </>
               )}
+              </div>
+               
             </div>
+            
+
           </header>
 
           <div className="min-h-0 flex-1">
             <div className={cn("h-full", view !== "all-pins" && "hidden")}>
               <AllPins
-                pins={pins}
+                pins={sortedPins}
                 onPinSelect={(pin) => handlePinSelect(pin, "all-pins")}
                 onPinHover={setHoveredPin}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
               />
             </div>
 
             <div className={cn("h-full", view !== "my-pins" && "hidden")}>
             <MyPins
-              pins={pins}
+              pins={sortedPins}
               setPins={setPins}
               pinColor={pinColor} // Passes down the parent state
               setPinColor={setPinColor} // Passes down the parent state setter
@@ -350,12 +407,16 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="relative hidden h-full flex-1 md:block">
+        {/* 🟢 FIXED: Swap 'hidden md:block' out for 'w-0 md:w-auto' or manage visibility transitions clean without unmounting bounds */}
+        <div className="relative h-full flex-1 w-0 md:w-auto">
           <MapCanvas 
             center={mapCenter} 
             pins={pins} 
             hoveredPin={hoveredPin}
             setHoveredPin={setHoveredPin}
+            onPinSelect={(pin) => {
+              handlePinSelect(pin, activeTab)
+            }}
           />
         </div>
       </div>

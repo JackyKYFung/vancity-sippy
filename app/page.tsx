@@ -5,13 +5,14 @@ import { List, PlusSquare, Coffee } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AllPins } from "@/components/allPins"
 import { MyPins } from "@/components/myPins"
-import { AddPin } from "@/components/addPin"
 import { PinDetails } from "@/components/pinDetails"
 import { MapCanvas } from "@/components/map-canvas"
 import { AuthView } from "@/components/auth-view";
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/lib/database.types' 
 import { Pin, VisitStatus } from "@/types/map"
+import Image from "next/image"
+import dynamic from "next/dynamic"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -25,6 +26,10 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "all-pins", label: "All Pins", icon: List },
   { id: "my-pins", label: "My Pins", icon: PlusSquare },
 ]
+
+const AddPin = dynamic(() => import("@/components/addPin").then((mod) => mod.AddPin), {
+  ssr: false, // Disables server-side rendering execution for the modal
+})
 
 function tabForView(view: View, previousTab: Tab): Tab {
   if (view === "all-pins" || view === "my-pins") return view
@@ -45,6 +50,11 @@ export default function Page() {
     lat: 49.2827,
     lng: -123.1207,
   })
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const handleLocationSelect = (coords: google.maps.LatLngLiteral) => {
+    setMapCenter(coords); // Or whatever your current coordinate state updates look like
+  };
 
   const [pinColor, setPinColor] = useState<string>("#6366f1");
   const [sortBy, setSortBy] = useState<"rating-desc" | "rating-asc" | "distance" | "user" | "newest">("newest")
@@ -252,8 +262,8 @@ export default function Page() {
       {/* 🌟 MOBILE ONLY FLOATING PILL */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 bg-background/80 backdrop-blur-md border border-border px-4 py-2 rounded-2xl shadow-xl max-w-[90vw] pointer-events-auto">
         <div className="flex items-center gap-1.5 border-r border-border pr-3 shrink-0">
+          <Image src="/Vancity-Sippy-Logo.svg" alt="Logo" width={11} height={11} priority />
           <h1 className="text-xs font-bold tracking-tight">Vancity Sippy</h1>
-          <Coffee className="size-3 text-primary" />
         </div>
   
         {user ? (
@@ -277,17 +287,20 @@ export default function Page() {
         <div className={cn(
           "flex flex-col bg-sidebar transition-all duration-300 shrink-0 z-10 shadow-2xl",
           "order-last md:order-first", 
-          "h-[45vh] w-full",
+          "h-[47vh] w-full",
           "md:h-full md:w-[350px] lg:w-[380px] md:max-w-md md:border-r border-border"
         )}>  
           
           {/* SIDEBAR HEADER */}
           {/* 🟢 FIXED: Fixed top padding on mobile so navigation items don't hide under the floating pill header */}
-          <header className="shrink-0 bg-sidebar border-b border-border pb-3 px-4 pt-4 md:pb-4">
+          <header className="shrink-0 bg-sidebar border-b border-border p-3 md:p-4">
             
             {/* 🌟 DESKTOP ONLY BRANDING & WELCOME SECTION */}
             <div className="hidden md:flex flex-col items-center justify-center text-center mb-4 w-full">
-              <h1 className="text-xl font-semibold tracking-tight">Vancity Sippy</h1>
+              <div className="flex items-center gap-1.5 pr-3 shrink-0">
+                <Image src="/Vancity-Sippy-Logo.svg" alt="Logo" width={15} height={15} priority />
+                <h1 className="text-xl font-semibold tracking-tight">Vancity Sippy</h1>
+              </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                 {user ? (
                   <div className="flex items-center gap-1 whitespace-nowrap">
@@ -396,17 +409,8 @@ export default function Page() {
                   handleGlobalColorChange(newColor);
                   setPinColor(newColor); 
                 }}
-                onAddClick={() => setView("add-pin")}
-              />
-            </div>
-
-            <div className={cn("h-full", view !== "add-pin" && "hidden")}>
-              <AddPin
-                onLocationSelect={(coords) => setMapCenter(coords)}
-                user={user}
-                pinColor={pinColor}
-                setPins={setPins}
-              />
+                onAddClick={() => setIsAddModalOpen(true)} // 💻 Wire this callback to flip state!
+                 />
             </div>
 
             <div className={cn("h-full", view !== "detail" && "hidden")}>
@@ -419,7 +423,7 @@ export default function Page() {
   
         {/* 🗺️ MAP WINDOW LAYER */}
         {/* 🟢 FIXED: Moved it completely outside of the sidebar so it stands side-by-side on desktop */}
-        <div className="relative h-[55vh] w-full md:h-full md:flex-1 order-first md:order-none">  
+        <div className="relative h-[57vh] w-full md:h-full md:flex-1 order-first md:order-none">  
           <MapCanvas 
             center={mapCenter} 
             pins={pins} 
@@ -430,6 +434,15 @@ export default function Page() {
             }}
           />
         </div>
+
+        <AddPin
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onLocationSelect={handleLocationSelect} 
+                user={user}
+                pinColor={pinColor}
+                setPins={setPins}
+              />  
 
       </div>
     </main>

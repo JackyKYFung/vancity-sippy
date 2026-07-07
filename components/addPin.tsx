@@ -20,6 +20,8 @@ import { useApiIsLoaded } from "@vis.gl/react-google-maps"
 import { createClient } from "@supabase/supabase-js"
 import { Database } from "@/lib/database.types" 
 
+import imageCompression from "browser-image-compression"
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -57,6 +59,8 @@ export function AddPin({
   const [customInput, setCustomInput] = useState("")
   const [selectedCoords, setSelectedCoords] = useState<google.maps.LatLngLiteral | null>(null)
   const [googlePlaceDetails, setGooglePlaceDetails] = useState<google.maps.places.PlaceResult | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const resetFormFields = () => {
     setName("")
@@ -70,6 +74,7 @@ export function AddPin({
     setSearchValue("") 
     setErrorMessage(null)
     setIsSubmittedSuccessfully(false)
+    setImageFile(null)
   }
 
   const handleCloseModal = () => {
@@ -135,6 +140,12 @@ export function AddPin({
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  }
+
   const handleFormSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
   
@@ -142,73 +153,123 @@ export function AddPin({
       setErrorMessage("Please search for and select a location from the search bar first!")
       return
     }
-  
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
-      setErrorMessage("Please log in to save your custom coffee spots!")
-      return
-    }
-  
-    const creatorUsername = session.user.user_metadata?.username || "anonymous"
-    let chosenColor = pinColor || "#6366f1";
 
-    const googleAddress = googlePlaceDetails?.formatted_address || searchValue || "Address not specified"
-    const googlePhone = googlePlaceDetails?.formatted_phone_number || "No phone number available"
-    const googleHours = googlePlaceDetails?.opening_hours?.weekday_text || null
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        setErrorMessage("Please log in to save your custom coffee spots!")
+        return
+      }
+    
+      const currentUserId = session.user.id
+      const creatorUsername = session.user.user_metadata?.username || "anonymous"
+      let chosenColor = pinColor || "#6366f1";
 
-    const { data, error } = await supabase
-      .from("pins")
-      .insert([
-        {
-          name: name || searchValue.split(",")[0],        
-          lat: selectedCoords.lat, 
-          lng: selectedCoords.lng,
-          user_id: session.user.id,
-          status: status,
-          color: chosenColor, 
-          details: {
-            drinks: customDrinks.length > 0 ? customDrinks : [
-              {
-                name: "Regular Coffee",
-                rating: 5,
-                user: creatorUsername,
-                status: "visited",
-                amenities: [],
-              }
-            ],
-            drinkTypes: drinkTypes,
-            rating: Number(rating),
-            neighborhood: neighborhood || "Vancouver",
-            created_by: creatorUsername,
-            formatted_address: googleAddress,
-            formatted_phone_number: googlePhone,
-            weekday_text: googleHours
-          }
+      const googleAddress = googlePlaceDetails?.formatted_address || searchValue || "Address not specified"
+      const googlePhone = googlePlaceDetails?.formatted_phone_number || "No phone number available"
+      const googleHours = googlePlaceDetails?.opening_hours?.weekday_text || null
+
+      let publicImageUrl: string | null = null
+
+      // 🟢 Handles Image Upload Phase
+      if (imageFile) {
+        setIsUploading(true)
+        
+        const options = {
+          maxSizeMB: 0.3,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+          fileType: "image/webp" as const
         }
-      ])
-      .select()
-  
-    if (error) {
-      setErrorMessage(`Could not save pin: ${error.message}`)
-      return
-    }
-  
-    if (data && data.length > 0) {
-      const newPinFromServer = data[0]
+
+        const compressedBlob = await imageCompression(imageFile, options)
+        const fileName = `${currentUserId}-${Date.now()}.webp`
+        const filePath = fileName
+
+        const webpFile = new File([compressedBlob], fileName, { 
+          type: "image/webp" 
+        })
+
+        const { error: uploadError } = await supabase.storage
+          .from("pin-photos")
+          .upload(filePath, webpFile, {
+            contentType: 'image/webp'
+            //upsert: true
+          })
+        
+        // If storage fails, this throws straight down to our master catch block below!
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("pin-photos")
+          .getPublicUrl(filePath)
+
+        publicImageUrl = publicUrl
+      }
+
+      // 🟢 Handles Database Entry Phase
+      const { data, error } = await supabase
+        .from("pins")
+        .insert([
+          {
+            name: name || searchValue.split(",")[0],        
+            lat: selectedCoords.lat, 
+            lng: selectedCoords.lng,
+            user_id: currentUserId,
+            status: status,
+            color: chosenColor, 
+            details: {
+              drinks: customDrinks.length > 0 ? customDrinks : [
+                {
+                  name: "Regular Coffee",
+                  rating: 5,
+                  user: creatorUsername,
+                  status: "visited",
+                  amenities: [],
+                }
+              ],
+              drinkTypes: drinkTypes,
+              rating: Number(rating),
+              neighborhood: neighborhood || "Vancouver",
+              created_by: creatorUsername,
+              formatted_address: googleAddress,
+              formatted_phone_number: googlePhone,
+              weekday_text: googleHours,
+              photo_url: publicImageUrl
+            }
+          }
+        ]) // 🟢 FIXED: Safely closed the insert array arrays
+        .select()
+
+      if (error) throw error
+    
+      if (data && data.length > 0) {
+        const newPinFromServer = data[0]
+        
+        const formattedPin: Pin = {
+          ...newPinFromServer,
+          isMine: true,
+          createdBy: creatorUsername,
+          category: categories || [],
+          color: chosenColor,
+          pinColor: chosenColor, 
+        } as unknown as Pin
+    
+        setPins((prevPins) => [...prevPins, formattedPin])
+      }
+    
+      setIsSubmittedSuccessfully(true)
+
+    } catch (err: any) {
+      // 🟢 Master Catch-all Safety Net handles everything beautifully now!
+      console.error("❌ SUBMIT HANDLER FAILURE:", err)
       
-      const formattedPin: Pin = {
-        ...newPinFromServer,
-        isMine: true,
-        createdBy: creatorUsername,
-        category: categories || [],
-        color: chosenColor,
-        pinColor: chosenColor, 
-      } as unknown as Pin
-  
-      setPins((prevPins) => [...prevPins, formattedPin])
+      const descriptiveMessage = err.message || (typeof err === 'string' ? err : JSON.stringify(err))
+      setErrorMessage(`Failed to save spot: ${descriptiveMessage}`)
+      
+    } finally {
+      setIsUploading(false)
     }
-  
-    setIsSubmittedSuccessfully(true)
   }
 
   useEffect(() => {
@@ -218,10 +279,6 @@ export function AddPin({
   }, [user])
 
   return (
-    /* 🟢 ACCESSIBLE COMPILER CONTAINER STATE FIX:
-      - Instead of early short-circuit returns (`if (!isOpen) return null`), we use clean CSS visibility toggles.
-      - This satisfies Next.js dynamic chunk state persistence, keeping modal handlers linked correctly to your view.
-    */
     <div 
       className={cn(
         "fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-all duration-200",
@@ -426,13 +483,29 @@ export function AddPin({
 
               {/* File upload */}
               <Field label="Upload a photo (optional)">
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-secondary/30 px-4 py-4 text-center transition-colors hover:border-primary/40">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-muted">
-                    <Upload className="size-3.5 text-muted-foreground" />
+                <label className={cn(
+                  "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border px-4 py-4 text-center transition-colors",
+                  imageFile ? "border-emerald-500/40 bg-emerald-500/5" : "bg-secondary/30 hover:border-primary/40"
+                )}>
+                  <div className={cn(
+                    "flex size-8 items-center justify-center rounded-full",
+                    imageFile ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"
+                  )}>
+                    <Upload className="size-3.5" />
                   </div>
-                  <span className="text-xs font-medium text-foreground">Upload an image</span>
-                  <span className="text-[10px] text-muted-foreground">PNG or JPG, up to 5MB</span>
-                  <input type="file" accept="image/*" className="hidden" />
+                  <span className="text-xs font-medium text-foreground">
+                    {imageFile ? "Photo attached!" : "Upload an image"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">
+                    {imageFile ? imageFile.name : "PNG or JPG, automatically compressed"}
+                  </span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    disabled={isUploading}
+                  />
                 </label>
               </Field>
             </form>
@@ -447,12 +520,13 @@ export function AddPin({
                 Cancel
               </button>
               <button 
-                type="button"
+                type="submit"
+                disabled={isUploading}
                 onClick={handleFormSubmit} 
-                className="flex-[2] flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 shadow-md"
+                className="flex-[2] flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 shadow-md disabled:opacity-50"
               >
                 <MapPin className="size-4" />
-                Add Pin
+                {isUploading ? "Uploading Image..." : "Add Pin"}
               </button>
             </div>
           </>

@@ -22,8 +22,8 @@ export interface Pin {
   createdBy: string;
   status: VisitStatus;
   owner: string;
-  amenities: string[];
   review: string;
+  photo_url?: string | null;
   details: any;
 }
 

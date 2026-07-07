@@ -92,7 +92,6 @@ export default function Page() {
             rating: current.rating || 5,
             user: current.createdBy || "anonymous",
             status: current.status || "visited",
-            amenities: current.amenities || [],
             review: current.review || "Saved entry log.",
             userColor: current.color
           }]

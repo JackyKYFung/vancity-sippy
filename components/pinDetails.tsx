@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import {
   ChevronLeft,
   MapPin,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Pin, PinDrink } from '@/types/map'
+import Lightbox from "@/components/Lightbox" // 🟢 Make sure this path matches your file structure!
 
 export function PinDetails({
   pin,
@@ -20,6 +21,19 @@ export function PinDetails({
   onClose: () => void
 }) {
   const rawDrinks = pin.details?.drinks || []
+  const mainPhotoUrl = pin.details?.photo_url || pin.photo_url || null
+
+  // 🟢 State variables for managing global Lightbox context strings
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxSrc, setLightboxSrc] = useState("")
+  const [lightboxAlt, setLightboxAlt] = useState("")
+
+  // Helper trigger handler to open specific file assets instantly
+  const handleOpenImage = (src: string, alt: string) => {
+    setLightboxSrc(src)
+    setLightboxAlt(alt)
+    setIsLightboxOpen(true)
+  }
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${pin.name}, ${pin.details?.formatted_address || pin.details?.address || pin.neighborhood || "Vancouver, BC"}`
@@ -27,18 +41,9 @@ export function PinDetails({
 
   return (
     <div className="flex h-full flex-col">
-      {/* 
-        🟢 CORRECTED LAYOUT SYSTEM:
-        - Mobile View (Base): 12-Column Grid Split. `items-stretch` causes the left column to fill the vertical height space.
-        - Desktop/Sidebar View (`md:`): Normal 1-column layout, resetting back to `md:items-start` so the contact box tightly fits its content height.
-      */}
       <div className="grid grid-cols-12 md:grid-cols-1 items-stretch md:items-start divide-x divide-border md:divide-x-0 h-full min-h-0 w-full">
         
-        {/* 
-          🟢 LEFT COLUMN: NAV & CONTACT INFO BOX
-          - Mobile: Takes up 4 columns out of 12.
-          - Desktop (`md:`): Drops down to regular full block width (`md:col-span-1`).
-        */}
+        {/* LEFT COLUMN: NAV & CONTACT INFO BOX */}
         <div className="col-span-6 md:col-span-1 flex flex-col gap-4 p-4 border-b md:border-b-0 border-border h-full md:h-auto">
           <div>
             <button
@@ -48,6 +53,23 @@ export function PinDetails({
               <ChevronLeft className="size-4" />
               Back to pins
             </button>
+
+            {/* Main Banner Photo */}
+            {mainPhotoUrl && (
+              <div 
+                onClick={() => handleOpenImage(mainPhotoUrl, `${pin.name} spot visual`)}
+                className="mt-3 relative w-full h-28 rounded-xl overflow-hidden border border-border shadow-sm bg-muted group cursor-zoom-in" // 🟢 Added cursor hint
+              >
+                <img 
+                  src={mainPhotoUrl} 
+                  alt={`${pin.name} spot visual`}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
 
             <div className="mt-3">
               <h1 className="text-sm font-bold leading-tight break-words text-foreground">
@@ -59,8 +81,6 @@ export function PinDetails({
           {/* Contact Details Information Card */}
           <div className="border-[1px] rounded-xl bg-secondary/10 p-3 space-y-3 text-[11px] w-full shadow-sm flex-1 md:flex-initial">
             <div className="space-y-2.5 text-muted-foreground">
-              
-              {/* Street Line Address */}
               <div className="flex items-start gap-2">
                 <MapPin className="size-3.5 shrink-0 mt-0.5 text-muted-foreground/70" />
                 <span className="text-foreground/90 leading-normal">
@@ -68,7 +88,6 @@ export function PinDetails({
                 </span>
               </div>
 
-              {/* Phone Line Dialer */}
               <div className="flex items-center gap-2">
                 <Phone className="size-3.5 shrink-0 text-muted-foreground/70" />
                 <span className="text-foreground/90">
@@ -76,7 +95,6 @@ export function PinDetails({
                 </span>
               </div>
 
-              {/* Operational Weekday Time Tables */}
               <div className="flex items-start gap-2">
                 <Clock className="size-3.5 shrink-0 mt-0.5 text-muted-foreground/70" />
                 <div className="w-full min-w-0">
@@ -106,10 +124,8 @@ export function PinDetails({
                   )}
                 </div>
               </div>
-
             </div>
 
-            {/* External Google Maps Link */}
             <div className="pt-1">
               <a
                 href={googleMapsUrl}
@@ -124,11 +140,7 @@ export function PinDetails({
           </div>
         </div>
 
-        {/* 
-          🟢 RIGHT COLUMN: COMMUNITY FEEDS
-          - Mobile: Spans across the remaining 8 out of 12 columns.
-          - Desktop (`md:`): Normal block width, flows naturally underneath the contact info card.
-        */}
+        {/* RIGHT COLUMN: COMMUNITY FEEDS */}
         <div className="col-span-6 md:col-span-1 min-h-0 flex-1 overflow-y-auto p-4 bg-background/30 flex flex-col gap-3 h-full">
           <div className="flex items-center justify-between pb-1">
             <h2 className="text-xs font-semibold text-muted-foreground tracking-tight uppercase">
@@ -151,23 +163,26 @@ export function PinDetails({
               </div>
             ) : rawDrinks.length > 0 ? (
               rawDrinks.map((drink: any, index: number) => {
-                const standardizedDrink: PinDrink & { userColor?: string } = typeof drink === 'string' 
+                const standardizedDrink: PinDrink & { userColor?: string; photoUrl?: string | null } = typeof drink === 'string' 
                   ? {
                       name: drink,
                       rating: pin.rating || 5,
                       user: pin.createdBy || pin.details?.created_by || "anonymous",
                       status: "visited",
-                      userColor: pin.color
+                      userColor: pin.color,
+                      photoUrl: mainPhotoUrl
                     }
                   : {
                       ...drink,
-                      userColor: drink.userColor || drink.color || pin.color
+                      userColor: drink.userColor || drink.color || pin.color,
+                      photoUrl: drink.photoUrl || drink.photo_url || mainPhotoUrl
                     }
 
                 return (
                   <DrinkCard 
                     key={`${standardizedDrink.user}-${standardizedDrink.name}-${index}`} 
                     drink={standardizedDrink} 
+                    onImageClick={handleOpenImage} // 🟢 Pass the image callback down
                   />
                 )
               })
@@ -180,25 +195,43 @@ export function PinDetails({
         </div>
 
       </div>
+
+      {/* 🟢 GLOBAL PORTAL LIGHTBOX ELEMENT */}
+      <Lightbox 
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        src={lightboxSrc}
+        alt={lightboxAlt}
+      />
     </div>
   )
 }
 
-function DrinkCard({ drink }: { drink: PinDrink & { userColor?: string } }) {
+function DrinkCard({ 
+  drink, 
+  onImageClick 
+}: { 
+  drink: PinDrink & { userColor?: string; photoUrl?: string | null };
+  onImageClick: (src: string, alt: string) => void // 🟢 Type safe callback prop
+}) {
   return (
-    <article className="space-y-2.5 rounded-xl border border-border bg-card p-3.5 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div 
-            className="flex size-6 items-center justify-center rounded-full bg-secondary text-[10px] font-bold shrink-0 border"
-            style={{ 
-              color: drink.userColor || "var(--primary)",
-              borderColor: drink.userColor ? `${drink.userColor}30` : "transparent"
-            }}
-          >
-            {(drink.user || "??").slice(0, 2).toUpperCase()}
-          </div>
-          <div className="min-w-0">
+    <article className="rounded-xl border border-border bg-card p-3.5 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        
+        {/* LEFT CONTENT COLUMN */}
+        <div className="flex-1 min-w-0 space-y-2">
+          
+          {/* Line 1: Creator Name */}
+          <div className="flex items-center gap-1.5">
+            <div 
+              className="flex size-5 items-center justify-center rounded-full bg-secondary text-[9px] font-bold shrink-0 border"
+              style={{ 
+                color: drink.userColor || "var(--primary)",
+                borderColor: drink.userColor ? `${drink.userColor}30` : "transparent"
+              }}
+            >
+              {(drink.user || "??").slice(0, 2).toUpperCase()}
+            </div>
             <p 
               className="text-xs font-semibold truncate"
               style={{ color: drink.userColor || "inherit" }}
@@ -206,30 +239,47 @@ function DrinkCard({ drink }: { drink: PinDrink & { userColor?: string } }) {
               @{drink.user || "anonymous"}
             </p>
           </div>
-        </div>
-        
-        <div className="shrink-0">         
-          <div className="flex items-center gap-0.5 text-amber-500 font-semibold text-[10px]">
+
+          {/* Line 2: Rating Block */}
+          <div className="flex items-center gap-0.5 text-amber-500 font-bold text-[10px] pl-0.5">
             <span>{(drink.rating ?? 5).toFixed(1)}</span>
             <Star className="size-2.5 fill-current stroke-current" />
           </div>
+
+          {/* Line 3: Drinks Tag Row */}
+          <div className="flex flex-wrap items-center gap-1.5 pl-0.5">
+            <p className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+              Drinks:
+            </p>
+            <span className="rounded bg-primary/5 border border-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary inline-block truncate max-w-full">
+              {drink.name || "No Drinks Yet"}
+            </span>
+          </div>
+
+          {/* Optional Expansion Review Row */}
+          {drink.review && (
+            <p className="text-xs leading-relaxed text-muted-foreground bg-secondary/30 p-2 rounded-lg border border-border/40 mt-1 pl-0.5">
+              {drink.review}
+            </p>
+          )}
         </div>
-      </div>
 
-      <div className="flex flex-wrap gap-1">
-        <p className="text-[10px] font-bold text-muted-foreground">
-          Drinks:
-          <span className="rounded bg-primary/5 border border-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary ml-1 inline-block">
-            {drink.name || "No Drinks Yet"}
-          </span>
-        </p>
-      </div>
+        {/* RIGHT COLUMN: Compact Image Preview (Clickable to Lightbox) */}
+        {drink.photoUrl && (
+          <div 
+            onClick={() => onImageClick(drink.photoUrl!, `Drink shared by @${drink.user}`)}
+            className="relative size-16 sm:size-20 rounded-lg overflow-hidden border border-border bg-muted/50 shrink-0 shadow-sm self-center cursor-zoom-in" // 🟢 Added cursor hint
+          >
+            <img 
+              src={drink.photoUrl} 
+              alt="User shared spot log asset" 
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
 
-      {drink.review && (
-        <p className="text-xs leading-relaxed text-muted-foreground bg-secondary/30 p-2 rounded-lg border border-border/40">
-          {drink.review}
-        </p>
-      )}
+      </div>
     </article>
   )
 }

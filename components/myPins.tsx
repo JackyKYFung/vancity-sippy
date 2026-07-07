@@ -83,11 +83,37 @@ export function MyPins({
     const pinId = pinToDelete
     setPinToDelete(null)
 
+    // 1. Find the full pin object from state before filtering it out
+    const targetPin = pins.find((p) => p.id === pinId)
+
+    // Save state context for optimistic rollback
     const previousPins = pins
     setPins((prev) => prev.filter((p) => p.id !== pinId))
 
     try {
+      // 2. If the pin has an image uploaded, clean it out from Storage first
+      const photoUrl = targetPin?.photo_url || targetPin?.details?.photo_url
+      
+      if (photoUrl) {
+        // Extract filename from the end of the URL string
+        const fileName = photoUrl.split('/').pop()
+        
+        if (fileName) {
+          // Fire-and-forget storage removal. We don't await block the database action 
+          // to keep the deletion feeling fast for the user.
+          supabase.storage
+            .from("pin-photos")
+            .remove([fileName]) // If using root storage bucket path
+            // .remove([`uploads/${fileName}`]) // 👈 Uncomment if you kept the subfolder path!
+            .then(({ error: storageErr }) => {
+              if (storageErr) console.error("Storage cleanup failed:", storageErr.message)
+            })
+        }
+      }
+
+      // 3. Delete the pin record from the database
       const { error } = await supabase.from("pins").delete().eq("id", pinId)
+      
       if (error) {
         console.error("Failed to delete pin:", error.message)
         setPins(previousPins)

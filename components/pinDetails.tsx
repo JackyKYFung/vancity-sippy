@@ -54,23 +54,6 @@ export function PinDetails({
               Back to pins
             </button>
 
-            {/* Main Banner Photo */}
-            {mainPhotoUrl && (
-              <div 
-                onClick={() => handleOpenImage(mainPhotoUrl, `${pin.name} spot visual`)}
-                className="mt-3 relative w-full h-28 rounded-xl overflow-hidden border border-border shadow-sm bg-muted group cursor-zoom-in" // 🟢 Added cursor hint
-              >
-                <img 
-                  src={mainPhotoUrl} 
-                  alt={`${pin.name} spot visual`}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-
             <div className="mt-3">
               <h1 className="text-sm font-bold leading-tight break-words text-foreground">
                 {pin.name}

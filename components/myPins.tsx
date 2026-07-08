@@ -207,7 +207,29 @@ export function MyPins({
               My Current Pins
             </h2>
             <div className="flex flex-col gap-2">
-              {myPins.map((pin) => (
+              {myPins.map((pin) => {
+
+              const getCleanCity = () => {
+                const fullAddress = pin.details?.formatted_address || pin.details?.address || ""
+                if (!fullAddress) return pin.details?.neighborhood || pin.neighborhood || "Vancouver"
+
+                const parts = fullAddress.split(",")
+                const bcIndex = parts.findIndex((part: string) => {
+                  const cleanPart = part.trim().toUpperCase()
+                  return cleanPart.startsWith("BC") || cleanPart.includes("BRITISH COLUMBIA")
+                })
+
+                if (bcIndex > 0) {
+                  const cityCandidate = parts[bcIndex - 1].trim()
+                  if (cityCandidate.length > 0) return cityCandidate
+                }
+
+                return pin.details?.neighborhood || pin.neighborhood || "Vancouver"
+              }
+
+              const displayCity = getCleanCity()
+              
+              return (
                 <article
                   key={pin.id}
                   onMouseEnter={() => onPinHover(pin)}
@@ -223,7 +245,7 @@ export function MyPins({
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-xs font-semibold text-foreground">{pin.name}</h3>
                     <p className="text-[10px] text-muted-foreground truncate">
-                      {pin.neighborhood}
+                      {displayCity}
                     </p>
                   </div>
                   <button
@@ -235,7 +257,9 @@ export function MyPins({
                     ✕
                   </button>
                 </article>
-              ))}
+              )}
+            )}
+
               {myPins.length === 0 && (
                 <div className="flex h-32 flex-col items-center justify-center gap-1.5 text-center text-muted-foreground">
                   <MapPin className="size-5 opacity-40" />

@@ -108,60 +108,61 @@ export default function Page() {
     return String(b.id).localeCompare(String(a.id))
   })
 
-  // 2. Fetch Pins from Database
-  useEffect(() => {
-    async function fetchDatabasePins() {
-      const { data, error } = await supabase
-        .from("pins")
-        .select("*")
-        .order("created_at", { ascending: false })
-  
-      if (error) {
-        console.error("Error loading pins: ", error.message)
-        return
-      }
-  
-      let userSavedColor: string | null = null;
+  // 🟢 1. Define the reusable fetcher function outside the hook
+  const refreshPins = async () => {
+    const { data, error } = await supabase
+      .from("pins")
+      .select("*")
+      .order("created_at", { ascending: false })
 
-      const formattedPins: Pin[] = (data || []).map((p) => {
-        const details = (p.details as any) || {}
-        const isMine = user ? p.user_id === user.id : false;
-
-        if (isMine && p.color) {
-          userSavedColor = p.color;
-        }
-  
-        return {
-          id: p.id || "", 
-          name: p.name || "Unknown Spot", 
-          lat: p.lat ?? 0, 
-          lng: p.lng ?? 0, 
-          color: p.color || "#6366f1",
-          distanceKm: 0, 
-          isMine: isMine,
-  
-          neighborhood: details.neighborhood || "Vancouver",
-          rating: details.rating || 0,
-          category: details.drinkTypes || [],
-          drink: Array.isArray(details.drinks) ? details.drinks.join(", ") : (details.drinks || "Coffee"),
-          createdBy: details.created_by || "anonymous",
-  
-          status: (p.status || "want-to-go") as VisitStatus,
-          owner: details.created_by || "anonymous",
-          amenities: details.amenities || [],
-          review: details.review || "",
-          details: details
-        }
-      })
-  
-      setPins(formattedPins)
-
-      if (userSavedColor) {
-        setPinColor(userSavedColor);
-      }
+    if (error) {
+      console.error("Error loading pins: ", error.message)
+      return
     }
-  
-    fetchDatabasePins()
+
+    let userSavedColor: string | null = null;
+
+    const formattedPins: Pin[] = (data || []).map((p) => {
+      const details = (p.details as any) || {}
+      const isMine = user ? p.user_id === user.id : false;
+
+      if (isMine && p.color) {
+        userSavedColor = p.color;
+      }
+
+      return {
+        id: p.id || "", 
+        name: p.name || "Unknown Spot", 
+        lat: p.lat ?? 0, 
+        lng: p.lng ?? 0, 
+        color: p.color || "#6366f1",
+        distanceKm: 0, 
+        isMine: isMine,
+
+        neighborhood: details.neighborhood || "Vancouver",
+        rating: details.rating || 0,
+        category: details.drinkTypes || [],
+        drink: Array.isArray(details.drinks) ? details.drinks.join(", ") : (details.drinks || "Coffee"),
+        createdBy: details.created_by || "anonymous",
+
+        status: (p.status || "want-to-go") as VisitStatus,
+        owner: details.created_by || "anonymous",
+        amenities: details.amenities || [],
+        review: details.review || "",
+        details: details
+      }
+    })
+
+    setPins(formattedPins)
+
+    if (userSavedColor) {
+      setPinColor(userSavedColor);
+    }
+  }
+
+  // 🟢 2. Keep your initial mount fetch hooked up
+  useEffect(() => {
+    refreshPins()
   }, [user])
 
   // 3. Sync Authentication Session Changes
@@ -441,6 +442,7 @@ export default function Page() {
                 user={user}
                 pinColor={pinColor}
                 setPins={setPins}
+                onSuccess={refreshPins}
               />  
 
       </div>

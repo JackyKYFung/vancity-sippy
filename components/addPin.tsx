@@ -34,6 +34,7 @@ export function AddPin({
   user,
   pinColor,
   setPins,
+  onSuccess
 }: {
   isOpen: boolean
   onClose: () => void
@@ -41,6 +42,7 @@ export function AddPin({
   user: any
   pinColor: string
   setPins: React.Dispatch<React.SetStateAction<Pin[]>>
+  onSuccess: () => Promise<void>
 }) {
   const apiIsLoaded = useApiIsLoaded() 
   
@@ -77,8 +79,9 @@ export function AddPin({
     setImageFile(null)
   }
 
-  const handleCloseModal = () => {
+  const handleCloseModal = async () => {
     resetFormFields()
+    await onSuccess()
     onClose()
   }
   
@@ -309,7 +312,7 @@ export function AddPin({
               ✓
             </div>
             <div>
-              <h3 className="text-base font-bold text-foreground">Spot Saved! ☕</h3>
+              <h3 className="text-base font-bold text-foreground">Pin added!</h3>
               <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed max-w-sm">
                 Your new custom pin has been published successfully and is live on your mapping interface dashboard.
               </p>
@@ -319,7 +322,7 @@ export function AddPin({
               onClick={handleCloseModal}
               className="w-full max-w-xs rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
             >
-              Got it, return to map
+              Got it!
             </button>
           </div>
         ) : (

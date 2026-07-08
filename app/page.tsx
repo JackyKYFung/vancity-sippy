@@ -399,7 +399,7 @@ export default function Page() {
 
             <div className={cn("h-full", view !== "my-pins" && "hidden")}>
               <MyPins
-                pins={sortedPins}
+                pins={pins}
                 setPins={setPins}
                 pinColor={pinColor} 
                 setPinColor={setPinColor} 

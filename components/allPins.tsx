@@ -13,13 +13,13 @@ import { Pin, DrinkType } from "@/types/map"
 
 const drinkTypeColor: Record<string, string> = {
   Coffee: "bg-amber-900/20 text-amber-700 border-amber-700",
-  Matcha: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Tea: "bg-green-50 text-green-700 border-green-200",
-  Espresso: "bg-orange-50 text-orange-700 border-orange-200",
-  "Cold Brew": "bg-stone-50 text-stone-700 border-stone-200",
+  Matcha: "bg-emerald-900/20 text-emerald-700 border-emerald-700",
+  Tea: "bg-green-900/20 text-green-700 border-green-700",
+  Espresso: "bg-orange-900/20 text-orange-700 border-orange-700",
+  "Cold Brew": "bg-stone-900/20text-stone-700 border-stone-700",
   Juice: "bg-lime-900/20 text-lime-700 border-lime-700",
   Milk: "bg-sky-900/20 text-sky-700 border-sky-700",
-  Fizzy: "bg-purple-50 text-purple-700 border-purple-200",
+  Fizzy: "bg-purple-900/20 text-purple-700 border-purple-700",
   Chocolate: "bg-red-900/20 text-red-700 border-red-700",
   Blended: "bg-pink-900/20 text-pink-700 border-pink-700",
 }

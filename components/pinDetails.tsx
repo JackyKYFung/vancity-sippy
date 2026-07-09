@@ -41,10 +41,10 @@ export function PinDetails({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="grid grid-cols-12 md:grid-cols-1 items-stretch md:items-start divide-x divide-border md:divide-x-0 h-full min-h-0 w-full">
+      <div className="grid grid-cols-12 md:grid-cols-1 items-stretch md:items-start divide-x divide-border md:divide-x-0 h-full min-h-0 w-full content-start">
         
         {/* LEFT COLUMN: NAV & CONTACT INFO BOX */}
-        <div className="col-span-6 md:col-span-1 flex flex-col gap-4 p-4 border-b md:border-b-0 border-border h-full md:h-auto">
+        <div className="col-span-6 md:col-span-1 flex flex-col gap-4 p-4 border-b md:border-b-0 border-border h-auto md:h-auto">
           <div>
             <button
               onClick={onClose}
@@ -62,7 +62,7 @@ export function PinDetails({
           </div>
 
           {/* Contact Details Information Card */}
-          <div className="border-[1px] rounded-xl bg-secondary/10 p-3 space-y-3 text-[11px] w-full shadow-sm flex-1 md:flex-initial">
+          <div className="border-[1px] rounded-xl bg-secondary/10 p-3 space-y-3 text-[11px] w-full shadow-sm flex-none md:flex-initial">
             <div className="space-y-2.5 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <MapPin className="size-3.5 shrink-0 mt-0.5 text-muted-foreground/70" />

@@ -287,7 +287,7 @@ export default function Page() {
         <div className={cn(
           "flex flex-col bg-sidebar transition-all duration-300 shrink-0 z-10 shadow-2xl",
           "order-last md:order-first", 
-          "h-[47vh] w-full",
+          "h-[52vh] w-full",
           "md:h-full md:w-[350px] lg:w-[380px] md:max-w-md md:border-r border-border"
         )}>  
           
@@ -423,7 +423,7 @@ export default function Page() {
   
         {/* 🗺️ MAP WINDOW LAYER */}
         {/* 🟢 FIXED: Moved it completely outside of the sidebar so it stands side-by-side on desktop */}
-        <div className="relative h-[57vh] w-full md:h-full md:flex-1 order-first md:order-none">  
+        <div className="relative h-[48vh] w-full md:h-full md:flex-1 order-first md:order-none">  
           <MapCanvas 
             center={mapCenter} 
             pins={pins} 

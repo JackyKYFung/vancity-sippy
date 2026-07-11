@@ -26,7 +26,8 @@ export function MyPins({
   isMaster,
   pinColor,
   setPinColor,
-  onAddClick
+  onAddClick,
+  onDeleteSuccess
 }: {
   pins: Pin[]
   setPins: React.Dispatch<React.SetStateAction<Pin[]>>
@@ -36,6 +37,7 @@ export function MyPins({
   pinColor: string
   setPinColor: React.Dispatch<React.SetStateAction<string>>
   onAddClick?: () => void
+  onDeleteSuccess?: () => Promise<void> | void;
 }) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
   
@@ -117,11 +119,18 @@ export function MyPins({
       if (error) {
         console.error("Failed to delete pin:", error.message)
         setPins(previousPins)
+      } else {
+        // 🟢 FIX: Trigger the global refetch to synchronize calculations instantly!
+        if (onDeleteSuccess) {
+          await onDeleteSuccess()
+        }
       }
     } catch (err) {
       console.error("Failed to delete pin:", err)
       setPins(previousPins)
     }
+
+    
   }
 
   return (
@@ -131,7 +140,7 @@ export function MyPins({
           - Mobile: Grid layout with 2 columns (Left: Controls, Right: Cards)
           - Desktop (md): Reverts back to standard full-width stack blocks
         */}
-        <div className="grid grid-cols-12 md:grid-cols-1 divide-x divide-border md:divide-x-0 h-full min-h-0">
+        <div className="grid grid-cols-12 md:grid-cols-1 divide-x divide-border md:divide-x-0 h-full min-h-0 content-start">
           
           {/* 🟢 LEFT SECTION: CONTROLS & PICKERS */}
           <div className="col-span-5 flex flex-col gap-3 p-4 border-b md:border-b-0 border-border overflow-y-auto">

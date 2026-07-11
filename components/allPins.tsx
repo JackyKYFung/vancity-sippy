@@ -296,6 +296,7 @@ function PinCard({
   const displayCity = getCleanCity()
   const displayCategories = (pin.category || (pin as any).drinkTypes || pin.details?.drinkTypes || []) as string[]
 
+
   return (
     <article
       role="button"
@@ -321,10 +322,10 @@ function PinCard({
             {pin.name}
           </h3>
           <div>
-            {pin.rating && (
-              <div className="flex items-center gap-0.5 text-amber-500 font-semibold text-[10px]">
-                <span>{Number(pin.rating).toFixed(1)}</span>
-                <Star className="size-2.5 fill-current stroke-current" />
+            {pin.rating > 0 && (
+              <div className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px]">
+                <span>{pin.rating.toFixed(1)}</span>
+                <Star className="size-3 fill-current stroke-current" />
               </div>
             )}
           </div>

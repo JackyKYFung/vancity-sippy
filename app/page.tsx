@@ -64,18 +64,67 @@ export default function Page() {
       (p) => p.lat.toFixed(4) === current.lat.toFixed(4) && p.lng.toFixed(4) === current.lng.toFixed(4)
     )
   
+    // 🟢 Cast status to string to satisfy TypeScript's strict zero-overlap rules
+    const currentRawRating = typeof current.rating === 'number' ? current.rating : 0;
+    const currentStatusStr = String(current.status).toLowerCase();
+    
+    const isToVisit = 
+      currentStatusStr === "to-visit" || 
+      currentStatusStr === "to_visit" || 
+      currentStatusStr === "want-to-go" ||
+      currentStatusStr === "want_to_go";
+
     if (existingLoc) {
       const existingDrinks = existingLoc.details?.drinks || []
       const incomingDrinks = (current.details?.drinks || []).map((d: any) => ({
         ...(typeof d === 'string' ? { name: d } : d),
         user: current.createdBy || "anonymous",
-        userColor: current.color
+        userColor: current.color,
+        rating: typeof d?.rating === 'number' ? d.rating : (currentRawRating > 0 ? currentRawRating : 5)
       }))
   
       if (existingLoc.details) {
         existingLoc.details.drinks = [...existingDrinks, ...incomingDrinks]
       }
+
+      // 🟢 Filter out bucket list logs using the normalized string check
+      const allMergedDrinks = existingLoc.details?.drinks || []
+      const visitedDrinks = allMergedDrinks.filter((d: any) => {
+        const drinkStatus = String(d?.status || "").toLowerCase();
+        return drinkStatus !== "to-visit" && drinkStatus !== "to_visit" && drinkStatus !== "want-to-go";
+      });
+
+      if (visitedDrinks.length > 0) {
+        const sum = visitedDrinks.reduce((accSum: number, d: any) => accSum + (Number(d.rating) || 0), 0)
+        const average = parseFloat((sum / visitedDrinks.length).toFixed(1))
+        
+        existingLoc.rating = average 
+        if (existingLoc.details) {
+          existingLoc.details.rating = average 
+        }
+      } else {
+        existingLoc.rating = 0
+        if (existingLoc.details) {
+          existingLoc.details.rating = 0
+        }
+      }     
+
     } else {
+      // (The rest of your "else" block code remains exactly the same as before!)
+      const initialDrinks = (current.details?.drinks || []).map((d: any) => ({
+        ...(typeof d === 'string' ? { name: d } : d),
+        user: current.createdBy || "anonymous",
+        userColor: current.color,
+        rating: typeof d?.rating === 'number' ? d.rating : (currentRawRating > 0 ? currentRawRating : 5)
+      }))
+
+      // If it's a bucket list item, baseline is strictly 0
+      const baseRating = isToVisit 
+        ? 0 
+        : initialDrinks.length > 0 
+          ? parseFloat((initialDrinks.reduce((s: number, d: any) => s + (Number(d.rating) || 0), 0) / initialDrinks.length).toFixed(1))
+          : currentRawRating
+
       acc.push({
         ...current,
         neighborhood: current.details?.neighborhood || current.neighborhood, 

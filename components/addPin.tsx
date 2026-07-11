@@ -222,23 +222,30 @@ export function AddPin({
             status: status,
             color: chosenColor, 
             details: {
-              drinks: customDrinks.length > 0 ? customDrinks : [
-                {
-                  name: "Regular Coffee",
-                  rating: 5,
-                  user: creatorUsername,
-                  status: "visited",
-                  amenities: [],
-                }
-              ],
-              drinkTypes: drinkTypes,
-              rating: Number(rating),
-              neighborhood: neighborhood || "Vancouver",
-              created_by: creatorUsername,
-              formatted_address: googleAddress,
-              formatted_phone_number: googlePhone,
-              weekday_text: googleHours,
-              photo_url: publicImageUrl
+              drinks: customDrinks.length > 0 
+              ? customDrinks.map((d: any) => ({
+                  ...(typeof d === 'string' ? { name: d } : d),
+                  rating: typeof d?.rating === 'number' ? d.rating : Number(rating),
+                  status: d?.status || status || "visited",
+                  user: creatorUsername
+                }))
+              : [
+                  {
+                    name: "Regular Coffee",
+                    rating: Number(rating), 
+                    user: creatorUsername,
+                    status: status || "visited",
+                    amenities: [],
+                  }
+                ],
+            drinkTypes: drinkTypes,
+            rating: Number(rating),
+            neighborhood: neighborhood || "Vancouver",
+            created_by: creatorUsername,
+            formatted_address: googleAddress,
+            formatted_phone_number: googlePhone,
+            weekday_text: googleHours,
+            photo_url: publicImageUrl
             }
           }
         ]) // 🟢 FIXED: Safely closed the insert array arrays
@@ -262,6 +269,7 @@ export function AddPin({
       }
     
       setIsSubmittedSuccessfully(true)
+      if (onSuccess) onSuccess()
 
     } catch (err: any) {
       // 🟢 Master Catch-all Safety Net handles everything beautifully now!

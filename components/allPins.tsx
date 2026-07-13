@@ -198,7 +198,15 @@ export function AllPins({
         {/* 🟢 RIGHT SECTION: SCROLLABLE CARDS GRID */}
         <div className="col-span-7 min-h-0 flex-1 overflow-y-auto p-4 bg-background/100">
           <div className="flex flex-col gap-2">
-            {filteredPins.map((pin, i) => {
+          {[...filteredPins]
+            .sort((a, b) => {
+              const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+              const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+              
+              if (dateA && dateB) return dateB - dateA
+              return String(b.id).localeCompare(String(a.id))
+            })
+            .map((pin, i) => {
               const creatorName = pin.createdBy || pin.details?.created_by || "anonymous"
               return (
                 <PinCard
@@ -313,7 +321,7 @@ function PinCard({
       className={cn(
         "group flex relative cursor-pointer flex-col gap-2 rounded-xl border p-3 transition-colors w-full",
         isToVisit 
-          ? "border-muted bg-muted/40 opacity-80 hover:border-muted-foreground/30 hover:bg-muted/60" 
+          ? "border-muted bg-zinc-800 hover:border-primary/40" 
           : "border-border bg-card hover:border-primary/40"
       )}>
       <div className="flex items-start justify-between gap-2 w-full">
@@ -322,12 +330,20 @@ function PinCard({
             {pin.name}
           </h3>
           <div>
-            {pin.rating > 0 && (
-              <div className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px]">
-                <span>{pin.rating.toFixed(1)}</span>
-                <Star className="size-3 fill-current stroke-current" />
-              </div>
-            )}
+            <div className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px]">
+              {isToVisit ? (
+                // 🟢 True block: It's a bucket-list spot, show text instead of stars
+                <span className="text-muted-foreground font-medium">Not yet visited</span>
+              ) : (
+                // 🟢 False block: They have visited, show the rating score if it exists
+                pin.rating > 0 && (
+                  <>
+                    <span>{pin.rating.toFixed(1)}</span>
+                    <Star className="size-3 fill-current stroke-current" />
+                  </>
+                )
+              )}
+            </div>
           </div>
         </div>
 

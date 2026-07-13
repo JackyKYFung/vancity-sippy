@@ -41,7 +41,20 @@ export function MyPins({
 }) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
   
-  const myPins = pins.filter((p) => p.isMine)
+  const myPins = pins
+    .filter((p) => p.isMine)
+    .sort((a, b) => {
+      // 🟢 Sort by real timestamps if they exist on your Pin type
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+      
+      if (dateA && dateB) {
+        return dateB - dateA // Newest first
+      }
+
+      // 🟡 Fallback: If your aggregator drops created_at, sort by database ID string comparison
+      return String(b.id).localeCompare(String(a.id))
+    })
   const displayLimit = isMaster ? "∞" : PIN_LIMIT;
   const isLimitReached = !isMaster && myPins.length >= PIN_LIMIT;
 

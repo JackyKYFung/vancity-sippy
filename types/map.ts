@@ -25,6 +25,7 @@ export interface Pin {
   review: string;
   photo_url?: string | null;
   details: any;
+  created_at?: string
 }
 
 export type PinDrink = {

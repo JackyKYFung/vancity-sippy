@@ -14,9 +14,9 @@ import { Pin, VisitStatus } from "@/types/map"
 import Image from "next/image"
 import dynamic from "next/dynamic"
 
+// supabase related 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
 type Tab = "all-pins" | "my-pins"
@@ -187,6 +187,7 @@ export default function Page() {
         color: p.color || "#6366f1",
         distanceKm: 0, 
         isMine: isMine,
+        created_at: p.created_at,
 
         neighborhood: details.neighborhood || "Vancouver",
         rating: details.rating || 0,
@@ -196,7 +197,6 @@ export default function Page() {
 
         status: (p.status || "want-to-go") as VisitStatus,
         owner: details.created_by || "anonymous",
-        amenities: details.amenities || [],
         review: details.review || "",
         details: details
       }
@@ -206,6 +206,15 @@ export default function Page() {
 
     if (userSavedColor) {
       setPinColor(userSavedColor);
+    }
+
+    // grabbing the coords of newest created pin to use as default coord for initial loads
+    if (formattedPins.length > 0) {
+      const mostRecentPin = formattedPins[0]; // Since the DB query is ordered by created_at DESC
+      setMapCenter({
+        lat: mostRecentPin.lat,
+        lng: mostRecentPin.lng
+      });
     }
   }
 
@@ -459,6 +468,7 @@ export default function Page() {
                   setPinColor(newColor); 
                 }}
                 onAddClick={() => setIsAddModalOpen(true)} // 💻 Wire this callback to flip state!
+                onDeleteSuccess={refreshPins}
                  />
             </div>
 

@@ -145,23 +145,15 @@ export function PinDetails({
           </div>
 
           <div className="space-y-3">
-            {((pin.status as string) === "to-visit" || (pin.status as string) === "to_visit") ? (
-              <div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center">
-                <p className="text-xs font-medium text-foreground">
-                  Saved to bucket list by <span style={{ color: pin.color || 'inherit' }} className="font-semibold">@{pin.createdBy || "anonymous"}</span>
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
-                  This spot hasn't been visited yet. Logs will appear once someone shares their experience here!
-                </p>
-              </div>
-            ) : rawDrinks.length > 0 ? (
+            {rawDrinks.length > 0 ? (
               rawDrinks.map((drink: any, index: number) => {
+                // 1. Standardize the data shape
                 const standardizedDrink: PinDrink & { userColor?: string; photoUrl?: string | null } = typeof drink === 'string' 
                   ? {
                       name: drink,
                       rating: pin.rating || 5,
                       user: pin.createdBy || pin.details?.created_by || "anonymous",
-                      status: "visited",
+                      status: pin.status || "visited",
                       userColor: pin.color,
                       photoUrl: mainPhotoUrl
                     }
@@ -171,21 +163,43 @@ export function PinDetails({
                       photoUrl: drink.photoUrl || drink.photo_url || mainPhotoUrl
                     }
 
+                // 🟢 2. Identify if this specific log entry belongs to the master account ("jfunki")
+                const isMasterUser = standardizedDrink.user === "jfunki"
+                const isUnvisitedLog = standardizedDrink.status === "to-visit" || standardizedDrink.status === "to_visit"
+
+                // 🟢 3. If it's your unvisited bucket-list item, swap out the layout for a placeholder card
+                if (isMasterUser && isUnvisitedLog) {
+                  return (
+                    <div 
+                      key={`master-placeholder-${index}`}
+                      className="rounded-xl border border-dashed border-border bg-card/20 px-4 py-4 text-center"
+                    >
+                      <p className="text-[11px] font-medium text-muted-foreground">
+                        📍 Added to <span style={{ color: pin.color }} className="font-semibold">@jfunki's</span> bucket list
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                        Review unlocked once jfunki shares an experience here!
+                      </p>
+                    </div>
+                  )
+                }
+
+                // 🟢 4. Otherwise, render the standard review card (visible to everyone!)
                 return (
                   <DrinkCard 
                     key={`${standardizedDrink.user}-${standardizedDrink.name}-${index}`} 
                     drink={standardizedDrink} 
-                    onImageClick={handleOpenImage} // 🟢 Pass the image callback down
+                    onImageClick={handleOpenImage}
                   />
                 )
               })
             ) : (
+              // Fallback if there's absolutely no data at all
               <p className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-xs text-muted-foreground">
                 No drinks logged yet for this location.
               </p>
             )}
           </div>
-        </div>
 
       </div>
 
@@ -196,6 +210,8 @@ export function PinDetails({
         src={lightboxSrc}
         alt={lightboxAlt}
       />
+    </div>
+
     </div>
   )
 }

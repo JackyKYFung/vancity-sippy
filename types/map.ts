@@ -1,5 +1,5 @@
 // types/map.ts
-export type VisitStatus = "want-to-go" | "visited"; // or whatever your actual statuses are
+export type VisitStatus = "to-visit" | "visited"; // or whatever your actual statuses are
 
 // 🟢 Add your DrinkType definition here
 export type DrinkType = "Coffee" | "Matcha" | "Tea" | "Juice" | "Milk" | "Fizzy" | "Chocolate" | "Blended";
@@ -41,4 +41,3 @@ export type PinDrink = {
 export type PinDetailsInfo = {
   drinks: PinDrink[]
 }
-

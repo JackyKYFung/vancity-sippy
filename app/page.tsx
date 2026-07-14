@@ -195,28 +195,44 @@ export default function Page() {
         drink: Array.isArray(details.drinks) ? details.drinks.join(", ") : (details.drinks || "Coffee"),
         createdBy: details.created_by || "anonymous",
 
-        status: (p.status || "want-to-go") as VisitStatus,
+        status: (p.status || "to-visit") as VisitStatus,
         owner: details.created_by || "anonymous",
         review: details.review || "",
         details: details
       }
     })
 
-    setPins(formattedPins)
+    const isMasterUser = user?.email === "j12funki@gmail.com" || user?.username === "jfunki";
+    
+    const visiblePins = formattedPins.filter((pin) => {
+      const isToVisit = pin.status === "to-visit";
+      
+      // If it's a bucket-list pin, ONLY allow it to pass through if the master user is logged in
+      if (isToVisit) {
+        return isMasterUser;
+      }
+      
+      // Always show "visited" pins to everyone
+      return true;
+    });
+
+    // 🟡 UPDATE THIS LINE: Change formattedPins to visiblePins
+    setPins(visiblePins)
 
     if (userSavedColor) {
       setPinColor(userSavedColor);
     }
 
-    // grabbing the coords of newest created pin to use as default coord for initial loads
-    if (formattedPins.length > 0) {
-      const mostRecentPin = formattedPins[0]; // Since the DB query is ordered by created_at DESC
+    // 🟡 UPDATE THIS LINE TOO: Use visiblePins to grab the default coordinates
+    if (visiblePins.length > 0) {
+      const mostRecentPin = visiblePins[0]; 
       setMapCenter({
         lat: mostRecentPin.lat,
         lng: mostRecentPin.lng
       });
     }
   }
+
 
   // 🟢 2. Keep your initial mount fetch hooked up
   useEffect(() => {

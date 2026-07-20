@@ -12,20 +12,12 @@ import {
   Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { StarRating } from "@/components/star-rating"
+import { StarRating } from "@/components/StarRating"
+import { Field } from "@/components/ui/field"
 import { DRINK_TYPES, type DrinkType, type Pin } from "@/types/map"
 import usePlacesAutocomplete, { getGeocode, getLatLng } from "use-places-autocomplete"
 import { useApiIsLoaded } from "@vis.gl/react-google-maps" 
-
-import { createClient } from "@supabase/supabase-js"
-import { Database } from "@/lib/database.types" 
-
-import imageCompression from "browser-image-compression"
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+import { insertPin, supabase } from "@/components/ui/supabase/pins"
 
 export function AddPin({
   isOpen,
@@ -46,14 +38,13 @@ export function AddPin({
 }) {
   const apiIsLoaded = useApiIsLoaded() 
   
-  // 🟢 Form Flow States
+  // Form Flow States
   const [isSubmittedSuccessfully, setIsSubmittedSuccessfully] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   
   // Form values
   const [name, setName] = useState("")
   const [rating, setRating] = useState(5)
-  const [categories, setCategories] = useState<string[]>([])
   const [neighborhood, setNeighborhood] = useState("Downtown")
   const [customDrinks, setCustomDrinks] = useState<string[]>([])
   const [status, setStatus] = useState("visited")
@@ -145,7 +136,7 @@ export function AddPin({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+      setImageFile(e.target.files[0])
     }
   }
 
@@ -163,121 +154,33 @@ export function AddPin({
         setErrorMessage("Please log in to save your custom coffee spots!")
         return
       }
-    
-      const currentUserId = session.user.id
-      const creatorUsername = session.user.user_metadata?.username || "anonymous"
-      let chosenColor = pinColor || "#6366f1";
 
-      const googleAddress = googlePlaceDetails?.formatted_address || searchValue || "Address not specified"
-      const googlePhone = googlePlaceDetails?.formatted_phone_number || "No phone number available"
-      const googleHours = googlePlaceDetails?.opening_hours?.weekday_text || null
+      setIsUploading(true)
 
-      let publicImageUrl: string | null = null
+      const formattedPin = await insertPin({
+        userId: session.user.id,
+        username: session.user.user_metadata?.username || "anonymous",
+        name,
+        coords: selectedCoords,
+        status,
+        rating,
+        pinColor,
+        neighborhood,
+        drinkTypes,
+        customDrinks,
+        googleDetails: googlePlaceDetails,
+        searchValue,
+        imageFile,
+      })
 
-      // 🟢 Handles Image Upload Phase
-      if (imageFile) {
-        setIsUploading(true)
-        
-        const options = {
-          maxSizeMB: 0.3,
-          maxWidthOrHeight: 1200,
-          useWebWorker: true,
-          fileType: "image/webp" as const
-        }
-
-        const compressedBlob = await imageCompression(imageFile, options)
-        const fileName = `${currentUserId}-${Date.now()}.webp`
-        const filePath = fileName
-
-        const webpFile = new File([compressedBlob], fileName, { 
-          type: "image/webp" 
-        })
-
-        const { error: uploadError } = await supabase.storage
-          .from("pin-photos")
-          .upload(filePath, webpFile, {
-            contentType: 'image/webp'
-            //upsert: true
-          })
-        
-        // If storage fails, this throws straight down to our master catch block below!
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("pin-photos")
-          .getPublicUrl(filePath)
-
-        publicImageUrl = publicUrl
-      }
-
-      // 🟢 Handles Database Entry Phase
-      const { data, error } = await supabase
-        .from("pins")
-        .insert([
-          {
-            name: name || searchValue.split(",")[0],        
-            lat: selectedCoords.lat, 
-            lng: selectedCoords.lng,
-            user_id: currentUserId,
-            status: status,
-            color: chosenColor, 
-            details: {
-              drinks: customDrinks.length > 0 
-              ? customDrinks.map((d: any) => ({
-                  ...(typeof d === 'string' ? { name: d } : d),
-                  rating: typeof d?.rating === 'number' ? d.rating : Number(rating),
-                  status: d?.status || status || "visited",
-                  user: creatorUsername
-                }))
-              : [
-                  {
-                    name: "Regular Coffee",
-                    rating: Number(rating), 
-                    user: creatorUsername,
-                    status: status || "visited",
-                    amenities: [],
-                  }
-                ],
-            drinkTypes: drinkTypes,
-            rating: Number(rating),
-            neighborhood: neighborhood || "Vancouver",
-            created_by: creatorUsername,
-            formatted_address: googleAddress,
-            formatted_phone_number: googlePhone,
-            weekday_text: googleHours,
-            photo_url: publicImageUrl
-            }
-          }
-        ]) // 🟢 FIXED: Safely closed the insert array arrays
-        .select()
-
-      if (error) throw error
-    
-      if (data && data.length > 0) {
-        const newPinFromServer = data[0]
-        
-        const formattedPin: Pin = {
-          ...newPinFromServer,
-          isMine: true,
-          createdBy: creatorUsername,
-          category: categories || [],
-          color: chosenColor,
-          pinColor: chosenColor, 
-        } as unknown as Pin
-    
-        setPins((prevPins) => [...prevPins, formattedPin])
-      }
-    
+      setPins((prev) => [...prev, formattedPin])
       setIsSubmittedSuccessfully(true)
-      if (onSuccess) onSuccess()
+      if (onSuccess) await onSuccess()
 
     } catch (err: any) {
-      // 🟢 Master Catch-all Safety Net handles everything beautifully now!
       console.error("❌ SUBMIT HANDLER FAILURE:", err)
-      
-      const descriptiveMessage = err.message || (typeof err === 'string' ? err : JSON.stringify(err))
+      const descriptiveMessage = err.message || (typeof err === "string" ? err : JSON.stringify(err))
       setErrorMessage(`Failed to save spot: ${descriptiveMessage}`)
-      
     } finally {
       setIsUploading(false)
     }
@@ -313,7 +216,7 @@ export function AddPin({
           <X className="size-4" />
         </button>
 
-        {/* 🟢 VIEW A: THE SUCCESS STATE WINDOW */}
+        {/* VIEW A: THE SUCCESS STATE WINDOW */}
         {isSubmittedSuccessfully ? (
           <div className="flex flex-col items-center justify-center text-center p-8 my-auto space-y-4">
             <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 text-2xl font-bold">
@@ -334,7 +237,7 @@ export function AddPin({
             </button>
           </div>
         ) : (
-          /* 🟢 VIEW B: THE FORM ENTRY WINDOW */
+          /* VIEW B: THE FORM ENTRY WINDOW */
           <>
             <div className="flex items-center gap-3 border-b border-border px-5 py-4 bg-secondary/30">
               <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -384,7 +287,7 @@ export function AddPin({
                 </div>
               </Field>
 
-              {/* Visited status segmented control */}
+              {/* Visited status control (only for master account) */}
               {user?.isMaster && (
                 <Field label="Visited status">
                   <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-secondary p-1">
@@ -492,7 +395,7 @@ export function AddPin({
                 </div>
               </Field>
 
-              {/* File upload */}
+              {/* Image upload */}
               <Field label="Upload a photo (optional)">
                 <label className={cn(
                   "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border px-4 py-4 text-center transition-colors",
@@ -521,7 +424,7 @@ export function AddPin({
               </Field>
             </form>
 
-            {/* Submit Action Tray Footer */}
+            {/* Submit Action Footer */}
             <div className="border-t border-border px-5 py-4 bg-secondary/10 flex gap-3">
               <button
                 type="button"
@@ -543,15 +446,6 @@ export function AddPin({
           </>
         )}
       </div>
-    </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</label>
-      {children}
     </div>
   )
 }

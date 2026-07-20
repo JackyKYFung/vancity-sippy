@@ -1,28 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import {
-  ArrowUpDown,
-  User,
-  MapPin,
-  ChevronDown,
-  Star
-} from "lucide-react"
+import { ArrowUpDown, User, MapPin } from "lucide-react"
+import { FilterChip } from "./FilterChip"
+import { PinCard } from "./PinCard"
 import { cn } from "@/lib/utils"
 import { Pin, DrinkType } from "@/types/map"
+import { ALL_DRINK_TYPES } from "@/lib/constants"
 
-const drinkTypeColor: Record<string, string> = {
-  Coffee: "bg-amber-900/20 text-amber-700 border-amber-700",
-  Matcha: "bg-emerald-900/20 text-emerald-700 border-emerald-700",
-  Tea: "bg-green-900/20 text-green-700 border-green-700",
-  Espresso: "bg-orange-900/20 text-orange-700 border-orange-700",
-  "Cold Brew": "bg-stone-900/20text-stone-700 border-stone-700",
-  Juice: "bg-lime-900/20 text-lime-700 border-lime-700",
-  Milk: "bg-sky-900/20 text-sky-700 border-sky-700",
-  Fizzy: "bg-purple-900/20 text-purple-700 border-purple-700",
-  Chocolate: "bg-red-900/20 text-red-700 border-red-700",
-  Blended: "bg-pink-900/20 text-pink-700 border-pink-700",
-}
 
 interface AllPinsProps {
   pins: Pin[]
@@ -45,6 +30,8 @@ export function AllPins({
 
   const toggleDrink = (d: DrinkType) =>
     setDrinkFilters((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+
+  
 
   let filteredPins: Pin[] = pins
 
@@ -177,7 +164,7 @@ export function AllPins({
           <div>
             <p className="mb-2 text-xs font-semibold text-foreground">Filter Drinks By:</p>
             <div className="flex flex-wrap items-center gap-1.5">
-              {(["Coffee", "Matcha", "Tea", "Juice", "Milk", "Fizzy", "Chocolate", "Blended"] as DrinkType[]).map((d) => (
+              {ALL_DRINK_TYPES.map((d) => (
                 <button
                   key={d}
                   onClick={() => toggleDrink(d)}
@@ -231,150 +218,5 @@ export function AllPins({
 
       </div>
     </div>
-  )
-}
-
-function FilterChip({
-  icon: Icon,
-  label,
-  active,
-  onClick,
-  dropdown,
-}: {
-  icon: React.ElementType
-  label: string
-  active: boolean
-  onClick: () => void
-  dropdown?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center justify-between w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors text-left",
-        active
-          ? "border-primary/50 bg-primary/10 text-primary"
-          : "border-border text-muted-foreground hover:text-foreground",
-      )}
-    >
-      <div className="flex items-center gap-1.5">
-        <Icon className="size-3.5" />
-        <span>{label}</span>
-      </div>
-      {dropdown && <ChevronDown className="size-3 opacity-70" />}
-    </button>
-  )
-}
-
-function PinCard({
-  pin,
-  creatorName,
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
-}: {
-  pin: Pin
-  featured?: boolean
-  creatorName: string
-  onClick: () => void
-  onMouseEnter: () => void
-  onMouseLeave: () => void
-}) {
-  const totalLogs = pin.details?.drinks?.length || 1
-  const isToVisit = (pin.status as string) === "to-visit" || (pin.status as string) === "to_visit"
-
-  const getCleanCity = () => {
-    const fullAddress = pin.details?.formatted_address || pin.details?.address || ""
-    if (!fullAddress) return pin.details?.neighborhood || pin.neighborhood || "Vancouver"
-
-    const parts = fullAddress.split(",")
-    const bcIndex = parts.findIndex((part: string) => {
-      const cleanPart = part.trim().toUpperCase()
-      return cleanPart.startsWith("BC") || cleanPart.includes("BRITISH COLUMBIA")
-    })
-
-    if (bcIndex > 0) {
-      const cityCandidate = parts[bcIndex - 1].trim()
-      if (cityCandidate.length > 0) return cityCandidate
-    }
-
-    return pin.details?.neighborhood || pin.neighborhood || "Vancouver"
-  }
-
-  const displayCity = getCleanCity()
-  const displayCategories = (pin.category || (pin as any).drinkTypes || pin.details?.drinkTypes || []) as string[]
-
-
-  return (
-    <article
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-      className={cn(
-        "group flex relative cursor-pointer flex-col gap-2 rounded-xl border p-3 transition-colors w-full",
-        isToVisit 
-          ? "border-muted bg-zinc-800 hover:border-primary/40" 
-          : "border-border bg-card hover:border-primary/40"
-      )}>
-      <div className="flex items-start justify-between gap-2 w-full">
-        <div className="flex-1 min-w-0 space-y-1">
-          <h3 className="text-xs font-semibold break-words leading-tight text-foreground truncate group-hover:whitespace-normal">
-            {pin.name}
-          </h3>
-          <div>
-            <div className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px]">
-              {isToVisit ? (
-                // 🟢 True block: It's a bucket-list spot, show text instead of stars
-                <span className="text-muted-foreground font-medium">Not yet visited</span>
-              ) : (
-                // 🟢 False block: They have visited, show the rating score if it exists
-                pin.rating > 0 && (
-                  <>
-                    <span>{pin.rating.toFixed(1)}</span>
-                    <Star className="size-3 fill-current stroke-current" />
-                  </>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="shrink-0 flex flex-col items-end text-right text-[10px]">
-          <div className="truncate max-w-[80px]">
-            {totalLogs >= 2 ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Multiple</span>
-            ) : (
-              <span style={{ color: pin.color }}>@{creatorName}</span>
-            )}   
-          </div>
-          <p className="text-muted-foreground truncate max-w-[70px]">{displayCity}</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1">
-        {displayCategories.slice(0, 2).map((c) => (
-          <span
-            key={c}
-            className={cn(
-              "rounded px-1.5 py-0.5 text-[9px] font-medium border", 
-              drinkTypeColor[c] || "bg-secondary text-muted-foreground border-border"
-            )}
-          >
-            {c}
-          </span>
-        ))}
-        {displayCategories.length > 2 && (
-          <span className="text-[9px] text-muted-foreground px-0.5 py-0.5">+{displayCategories.length - 2}</span>
-        )}
-      </div>
-    </article>
   )
 }

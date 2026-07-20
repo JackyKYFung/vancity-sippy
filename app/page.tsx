@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import { List, PlusSquare, Coffee } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AllPins } from "@/components/allPins"
-import { MyPins } from "@/components/myPins"
-import { PinDetails } from "@/components/pinDetails"
-import { MapCanvas } from "@/components/map-canvas"
-import { AuthView } from "@/components/auth-view";
+import { AllPins } from "@/components/AllPins"
+import { MyPins } from "@/components/MyPins"
+import { PinDetails } from "@/components/PinDetails"
+import { MapCanvas } from "@/components/MapCanvas"
+import { AuthView } from "@/components/AuthView";
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/lib/database.types' 
 import { Pin, VisitStatus } from "@/types/map"
@@ -27,7 +27,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "my-pins", label: "My Pins", icon: PlusSquare },
 ]
 
-const AddPin = dynamic(() => import("@/components/addPin").then((mod) => mod.AddPin), {
+const AddPin = dynamic(() => import("@/components/AddPin").then((mod) => mod.AddPin), {
   ssr: false, // Disables server-side rendering execution for the modal
 })
 

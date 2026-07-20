@@ -5,18 +5,8 @@ import { ChevronDown, MapPin, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import { Pin } from '@/types/map'
+import { PIN_LIMIT, PRESET_COLORS } from "@/lib/constants"
 
-const PRESET_COLORS = [
-  "#BFDD2C",
-  "#FFB400",
-  "#D97706",
-  "#00A6ED",
-  "#7C3AED",
-  "#09BC8A",
-  "#F43F5E",
-]
-
-const PIN_LIMIT = 3
 
 export function MyPins({
   pins,

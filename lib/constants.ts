@@ -17,3 +17,17 @@ export const DRINK_TYPE_COLORS: Record<string, string> = {
 export const ALL_DRINK_TYPES: DrinkType[] = [
   "Coffee", "Matcha", "Tea", "Juice", "Milk", "Fizzy", "Chocolate", "Blended"
 ]
+
+export const PIN_LIMIT = 3 as const
+
+export const PRESET_COLORS = [
+  "#BFDD2C",
+  "#FFB400",
+  "#D97706",
+  "#00A6ED",
+  "#7C3AED",
+  "#09BC8A",
+  "#F43F5E",
+] as const
+
+export type PresetColor = (typeof PRESET_COLORS)[number]

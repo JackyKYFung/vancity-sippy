@@ -207,24 +207,20 @@ export default function Page() {
     const visiblePins = formattedPins.filter((pin) => {
       const isToVisit = pin.status === "to-visit";
       
-      // If it's a bucket-list pin, ONLY allow it to pass through if the master user is logged in
-      if (isToVisit) {
+       if (isToVisit) {
         return isMasterUser;
       }
       
-      // Always show "visited" pins to everyone
       return true;
     });
 
-    // 🟡 UPDATE THIS LINE: Change formattedPins to visiblePins
-    setPins(visiblePins)
+     setPins(visiblePins)
 
     if (userSavedColor) {
       setPinColor(userSavedColor);
     }
 
-    // 🟡 UPDATE THIS LINE TOO: Use visiblePins to grab the default coordinates
-    if (visiblePins.length > 0) {
+  if (visiblePins.length > 0) {
       const mostRecentPin = visiblePins[0]; 
       setMapCenter({
         lat: mostRecentPin.lat,
@@ -233,13 +229,12 @@ export default function Page() {
     }
   }
 
-
-  // 🟢 2. Keep your initial mount fetch hooked up
+  // keep initial mount hooked up
   useEffect(() => {
     refreshPins()
   }, [user])
 
-  // 3. Sync Authentication Session Changes
+  // Sync Authentication Session Changes
   useEffect(() => {
     const handleUserSession = async (session: any) => {
       if (session?.user) {
@@ -272,12 +267,13 @@ export default function Page() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // 4. Action Handlers
+  // Sign-in handler
   const handleSignIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) alert(error.message)
   }
 
+  // Sign-up handler
   const handleSignUp = async (email: string, password: string, username: string) => {
     const { error } = await supabase.auth.signUp({
       email,
@@ -291,6 +287,7 @@ export default function Page() {
     alert("Check your email for the confirmation link!")
   }
 
+  // Sign-out handler
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) console.error("Error logging out:", error.message)
@@ -357,7 +354,7 @@ export default function Page() {
       {/* MAIN CONTENT PIPELINE WRAPPER */}
       <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden">
   
-        {/* 📋 SIDEBAR / BOTTOM SHEET LAYER */}
+        {/* SIDEBAR / BOTTOM SECTION */}
         <div className={cn(
           "flex flex-col bg-sidebar transition-all duration-300 shrink-0 z-10 shadow-2xl",
           "order-last md:order-first", 
@@ -366,10 +363,9 @@ export default function Page() {
         )}>  
           
           {/* SIDEBAR HEADER */}
-          {/* 🟢 FIXED: Fixed top padding on mobile so navigation items don't hide under the floating pill header */}
-          <header className="shrink-0 bg-sidebar border-b border-border p-3 md:p-4">
+           <header className="shrink-0 bg-sidebar border-b border-border p-3 md:p-4">
             
-            {/* 🌟 DESKTOP ONLY BRANDING & WELCOME SECTION */}
+            {/* DESKTOP ONLY BRANDING & WELCOME SECTION */}
             <div className="hidden md:flex flex-col items-center justify-center text-center mb-4 w-full">
               <div className="flex items-center gap-1.5 pr-3 shrink-0">
                 <Image src="/Vancity-Sippy-Logo.svg" alt="Logo" width={15} height={15} priority />
@@ -417,8 +413,17 @@ export default function Page() {
             ) : (
               /* Navigation tabs bar + sign-out anchor */
               <div className="flex flex-row md:flex-col items-center justify-between md:items-stretch gap-3 w-full">
+                
+                {/* Sign Out */}
+                <button 
+                  onClick={handleSignOut}
+                  className="w-auto md:w-full py-1.5 px-3 md:py-2 md:px-4 bg-[#B80000] hover:bg-[#FF0000] text-white font-medium text-xs md:text-sm rounded-xl text-center transition-all shrink-0"
+                >
+                  Sign Out
+                </button>
+
                 {/* Tabs */}
-                <nav className="flex items-center gap-1 w-auto md:w-full md:border-t md:border-border md:pt-4">
+                <nav className="flex items-center gap-1 w-auto md:w-full ">
                   {TABS.map((t) => {
                     const Icon = t.icon
                     const isActive = activeTab === t.id
@@ -448,13 +453,6 @@ export default function Page() {
                   })}
                 </nav>
   
-                {/* Sign Out */}
-                <button 
-                  onClick={handleSignOut}
-                  className="w-auto md:w-full py-1.5 px-3 md:py-2 md:px-4 bg-[#B80000] hover:bg-[#FF0000] text-white font-medium text-xs md:text-sm rounded-xl text-center transition-all shrink-0"
-                >
-                  Sign Out
-                </button>
               </div>
             )}
           </header>
